@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class DataInitializer {
     @Value("\${excel.path}")
-    private lateinit var appName: String
+    lateinit var appName: String
 
     @Autowired
     private lateinit var excelReaderService: ExcelReaderService
