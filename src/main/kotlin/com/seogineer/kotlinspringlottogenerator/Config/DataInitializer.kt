@@ -9,9 +9,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class DataInitializer {
-    @Value("\${excel.path}")
-    lateinit var appName: String
+class DataInitializer(@Value("\${excel.path}") val appName: String) {
 
     @Autowired
     private lateinit var excelReaderService: ExcelReaderService
