@@ -1,0 +1,10 @@
+#POST http://localhost:8080/excel/upload
+POST http://158.179.174.138:80/excel/upload
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="file"; filename="excel.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ../../../excel.xlsx
+--boundary123--
