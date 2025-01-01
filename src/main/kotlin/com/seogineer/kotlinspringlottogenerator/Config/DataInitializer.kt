@@ -17,7 +17,7 @@ class DataInitializer {
 
     @Bean
     fun initDatabase() {
-        val filePath = "../../../../../home/ubuntu/excel.xlsx"
+        val filePath = "~/excel.xlsx"
         val drawings = excelReaderService.readExcelFile(filePath)
         drawingRepository.saveAll(drawings)
     }
