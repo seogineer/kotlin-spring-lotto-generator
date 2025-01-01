@@ -68,6 +68,10 @@ noArg {
     annotation 'javax.persistence.Entity'
 }
 
+bootJar {
+    archiveFileName = "${rootProject.name}.jar"
+}
+
 tasks.named('test') {
     useJUnitPlatform()
 }
