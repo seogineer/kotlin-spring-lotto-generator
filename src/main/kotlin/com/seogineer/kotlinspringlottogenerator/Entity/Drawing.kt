@@ -6,7 +6,7 @@ import javax.persistence.Id
 import javax.persistence.Table
 
 @Entity
-@Table(name = "DRAWING")
+@Table(name = "drawing")
 data class Drawing (
     @Id
     val round: Int,
