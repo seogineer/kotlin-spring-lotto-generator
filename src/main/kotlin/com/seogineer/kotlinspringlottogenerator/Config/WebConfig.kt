@@ -10,7 +10,7 @@ class WebConfig {
     @Bean
     fun corsConfigurer(): WebMvcConfigurer {
         val serverIp: String = when (System.getProperty("spring.profiles.active")) {
-            "prod" -> "https://seogineer.github.io/react-lotto-generator/"
+            "prod" -> "https://seogineer.github.io"
             else -> "http://localhost:3000"
         }
 
