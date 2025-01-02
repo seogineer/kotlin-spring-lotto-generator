@@ -6,6 +6,9 @@ import com.seogineer.kotlinspringlottogenerator.Entity.DrawingRepository
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.WorkbookFactory
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDate
@@ -16,6 +19,12 @@ import java.time.format.DateTimeFormatter
 class DrawingService(
     private val drawingRepository: DrawingRepository
 ) {
+
+    fun getDrawings(page: Int, size: Int): Page<Drawing> {
+        val pageable: Pageable = PageRequest.of(page, size) // 페이지 번호와 크기 설정
+        return drawingRepository.getDrawings(pageable)
+    }
+
     fun getMostFrequentNumber(): MostFrequentNumberResponse {
         return drawingRepository.getMostFrequentNumber()
     }

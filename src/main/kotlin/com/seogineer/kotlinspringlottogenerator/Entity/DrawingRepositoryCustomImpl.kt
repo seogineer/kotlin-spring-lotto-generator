@@ -4,12 +4,30 @@ import com.querydsl.jpa.impl.JPAQueryFactory
 import com.seogineer.kotlinspringlottogenerator.Dto.MostFrequentNumberResponse
 import com.seogineer.kotlinspringlottogenerator.Entity.QDrawing.drawing
 import lombok.RequiredArgsConstructor
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.Pageable
+
 
 @RequiredArgsConstructor
-class DrawingRepositoryCustomImpl(private val jpaQueryFactory: JPAQueryFactory) : DrawingRepositoryCustom {
+class DrawingRepositoryCustomImpl(private val queryFactory: JPAQueryFactory) : DrawingRepositoryCustom {
+    override fun getDrawings(pageable: Pageable): Page<Drawing> {
+        val drawings: List<Drawing> = queryFactory
+            .selectFrom(drawing)
+            .offset(pageable.offset)
+            .limit(pageable.pageSize.toLong())
+            .fetch()
+
+        val total: Long = queryFactory
+            .select(drawing.count())
+            .from(drawing)
+            .fetchOne() ?: 0L
+
+        return PageImpl(drawings, pageable, total)
+    }
 
     override fun getMostFrequentNumber(): MostFrequentNumberResponse {
-        val one = jpaQueryFactory
+        val one = queryFactory
             .select(drawing.one)
             .from(drawing)
             .groupBy(drawing.one)
@@ -17,7 +35,7 @@ class DrawingRepositoryCustomImpl(private val jpaQueryFactory: JPAQueryFactory) 
             .limit(1)
             .fetchOne() ?: 0
 
-        val two = jpaQueryFactory
+        val two = queryFactory
             .select(drawing.two)
             .from(drawing)
             .groupBy(drawing.two)
@@ -25,7 +43,7 @@ class DrawingRepositoryCustomImpl(private val jpaQueryFactory: JPAQueryFactory) 
             .limit(1)
             .fetchOne() ?: 0
 
-        val three = jpaQueryFactory
+        val three = queryFactory
             .select(drawing.three)
             .from(drawing)
             .groupBy(drawing.three)
@@ -33,7 +51,7 @@ class DrawingRepositoryCustomImpl(private val jpaQueryFactory: JPAQueryFactory) 
             .limit(1)
             .fetchOne() ?: 0
 
-        val four = jpaQueryFactory
+        val four = queryFactory
             .select(drawing.four)
             .from(drawing)
             .groupBy(drawing.four)
@@ -41,7 +59,7 @@ class DrawingRepositoryCustomImpl(private val jpaQueryFactory: JPAQueryFactory) 
             .limit(1)
             .fetchOne() ?: 0
 
-        val five = jpaQueryFactory
+        val five = queryFactory
             .select(drawing.five)
             .from(drawing)
             .groupBy(drawing.five)
@@ -49,7 +67,7 @@ class DrawingRepositoryCustomImpl(private val jpaQueryFactory: JPAQueryFactory) 
             .limit(1)
             .fetchOne() ?: 0
 
-        val six = jpaQueryFactory
+        val six = queryFactory
             .select(drawing.six)
             .from(drawing)
             .groupBy(drawing.six)
@@ -57,7 +75,7 @@ class DrawingRepositoryCustomImpl(private val jpaQueryFactory: JPAQueryFactory) 
             .limit(1)
             .fetchOne() ?: 0
 
-        val bonus = jpaQueryFactory
+        val bonus = queryFactory
             .select(drawing.bonus)
             .from(drawing)
             .groupBy(drawing.bonus)
