@@ -1,6 +1,6 @@
 package com.seogineer.kotlinspringlottogenerator.Controller
 
-import com.seogineer.kotlinspringlottogenerator.Dto.MostFrequentNumberResponse
+import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
 import com.seogineer.kotlinspringlottogenerator.Entity.Drawing
 import com.seogineer.kotlinspringlottogenerator.Service.DrawingService
 import org.springframework.data.domain.Page
@@ -22,9 +22,9 @@ class DrawingController(
         return drawingService.getDrawings(page, size)
     }
 
-    @GetMapping("/getMostFrequentNumber")
-    fun getMostFrequentNumber(): MostFrequentNumberResponse {
-        return drawingService.getMostFrequentNumber()
+    @GetMapping("/generate")
+    fun generateLottoNumbers(): LottoNumberResponse {
+        return drawingService.generateLottoNumbers()
     }
 
     @PostMapping("/upload")

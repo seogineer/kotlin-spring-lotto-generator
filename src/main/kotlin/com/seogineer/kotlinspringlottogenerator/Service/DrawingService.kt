@@ -1,6 +1,6 @@
 package com.seogineer.kotlinspringlottogenerator.Service
 
-import com.seogineer.kotlinspringlottogenerator.Dto.MostFrequentNumberResponse
+import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
 import com.seogineer.kotlinspringlottogenerator.Entity.Drawing
 import com.seogineer.kotlinspringlottogenerator.Entity.DrawingRepository
 import org.apache.poi.ss.usermodel.Row
@@ -25,8 +25,8 @@ class DrawingService(
         return drawingRepository.getDrawings(pageable)
     }
 
-    fun getMostFrequentNumber(): MostFrequentNumberResponse {
-        return drawingRepository.getMostFrequentNumber()
+    fun generateLottoNumbers(): LottoNumberResponse {
+        return drawingRepository.generateLottoNumbers()
     }
 
     fun readExcelFile(file: MultipartFile) {
