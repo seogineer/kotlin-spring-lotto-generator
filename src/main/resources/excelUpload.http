@@ -1,5 +1,5 @@
 POST http://localhost:8080/upload
-#POST http://158.179.174.138:80/upload
+#POST https://158.179.174.138/upload
 Content-Type: multipart/form-data; boundary=boundary123
 
 --boundary123
