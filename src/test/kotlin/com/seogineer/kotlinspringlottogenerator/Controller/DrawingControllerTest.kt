@@ -14,7 +14,7 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import java.io.File
 
-@ActiveProfiles("test, dev")
+@ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class DrawingControllerTest {
     @LocalServerPort
