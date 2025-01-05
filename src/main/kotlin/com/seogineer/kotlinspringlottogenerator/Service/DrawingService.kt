@@ -11,6 +11,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
+import java.math.BigInteger
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -21,7 +22,7 @@ class DrawingService(
 ) {
 
     fun getDrawings(page: Int, size: Int): Page<Drawing> {
-        val pageable: Pageable = PageRequest.of(page, size) // 페이지 번호와 크기 설정
+        val pageable: Pageable = PageRequest.of(page, size)
         return drawingRepository.getDrawings(pageable)
     }
 
@@ -47,7 +48,7 @@ class DrawingService(
                     val five = row.getCell(17).numericCellValue.toInt()
                     val six = row.getCell(18).numericCellValue.toInt()
                     val bonus = row.getCell(19).numericCellValue.toInt()
-                    val firstWinPrize = stringToLong(row.getCell(4).stringCellValue)
+                    val firstWinPrize = stringToBigInteger(row.getCell(4).stringCellValue)
                     val firstWinners = row.getCell(3).numericCellValue.toInt()
                     drawings.add(Drawing(round, date, one, two, three, four, five, six, bonus, firstWinPrize, firstWinners))
                 }
@@ -65,8 +66,8 @@ class DrawingService(
         return LocalDate.parse(dateStr, formatter)
     }
 
-    private fun stringToLong(prizeStr: String): Long {
+    private fun stringToBigInteger(prizeStr: String): BigInteger {
         val prize = prizeStr.replace(",", "").replace("원", "")
-        return prize.toLong()
+        return prize.toBigInteger()
     }
 }
