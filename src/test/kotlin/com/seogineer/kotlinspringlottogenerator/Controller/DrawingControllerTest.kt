@@ -11,10 +11,8 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
-import org.springframework.test.context.ActiveProfiles
 import java.io.File
 
-@ActiveProfiles("dev")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class DrawingControllerTest {
     @LocalServerPort
@@ -25,16 +23,11 @@ class DrawingControllerTest {
         RestAssured.port = port
     }
 
-    @BeforeEach
-    fun checkProfile() {
-        println("Active Profiles: " + System.getProperty("spring.profiles.active"))
-    }
-
     @Test
     fun 엑셀_업로드() {
         val response = RestAssured
             .given()
-                .multiPart("file", File("./excel.xlsx"))
+                .multiPart("file", File(ClassLoader.getSystemResource("excel.xlsx").file))
                 .accept(ContentType.JSON)
             .`when`()
                 .post("/upload")
@@ -49,7 +42,7 @@ class DrawingControllerTest {
     fun 역대_당첨_번호_조회() {
         RestAssured
             .given()
-                .multiPart("file", File("./excel.xlsx"))
+                .multiPart("file", File(ClassLoader.getSystemResource("excel.xlsx").file))
                 .accept(ContentType.JSON)
             .`when`()
                 .post("/upload")
@@ -73,7 +66,7 @@ class DrawingControllerTest {
     fun 추천_번호_생성() {
         RestAssured
             .given()
-            .multiPart("file", File("./excel.xlsx"))
+            .multiPart("file", File(ClassLoader.getSystemResource("excel.xlsx").file))
             .accept(ContentType.JSON)
             .`when`()
             .post("/upload")
