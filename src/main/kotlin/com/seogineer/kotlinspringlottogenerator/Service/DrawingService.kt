@@ -78,7 +78,7 @@ class DrawingService(
         return drawingRepository.findTopByOrderByRoundDesc().get().round + 1
     }
 
-    @Scheduled(cron = "cron = 0 0 12 ? * MON")
+    @Scheduled(cron = "0 0 12 ? * MON", zone = "Asia/Seoul")
     fun fetchAndStoreLottoNumbers() {
         val latestDrawNo = findLatestRound()
         val apiUrl = "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${latestDrawNo}"
