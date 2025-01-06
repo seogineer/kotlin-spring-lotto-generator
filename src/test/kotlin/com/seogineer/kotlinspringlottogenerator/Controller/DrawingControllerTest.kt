@@ -25,6 +25,11 @@ class DrawingControllerTest {
         RestAssured.port = port
     }
 
+    @BeforeEach
+    fun checkProfile() {
+        println("Active Profiles: " + System.getProperty("spring.profiles.active"))
+    }
+
     @Test
     fun 엑셀_업로드() {
         val response = RestAssured
