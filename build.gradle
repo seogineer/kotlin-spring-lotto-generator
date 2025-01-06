@@ -30,6 +30,7 @@ repositories {
 }
 
 dependencies {
+    implementation 'org.json:json:20231013'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'com.fasterxml.jackson.module:jackson-module-kotlin'

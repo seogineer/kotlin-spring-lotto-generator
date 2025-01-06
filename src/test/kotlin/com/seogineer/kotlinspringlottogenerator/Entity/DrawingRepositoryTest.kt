@@ -57,4 +57,10 @@ class DrawingRepositoryTest(
 
         assertTrue(isValid)
     }
+
+    @Test
+    fun 가장_최근_회차_조회() {
+        val latestRound = drawingRepository.findTopByOrderByRoundDesc().get().round
+        assertEquals(3, latestRound)
+    }
 }

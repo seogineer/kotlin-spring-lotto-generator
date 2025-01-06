@@ -19,6 +19,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import java.math.BigInteger
 import java.time.LocalDate
+import java.util.*
 
 @ExtendWith(MockitoExtension::class)
 class DrawingServiceTest {
@@ -57,5 +58,13 @@ class DrawingServiceTest {
         assertEquals(BigInteger("2000000000"), result.content[0].firstWinPrize)
         assertEquals(1, result.content[0].firstWinners)
         verify(drawingRepository, times(1)).getDrawings(pageable)
+    }
+
+    @Test
+    fun 가장_최근_회차_조회() {
+        `when`(drawingRepository.findTopByOrderByRoundDesc()).thenReturn(Optional.of(당첨번호3))
+
+        val latestRound = drawingRepository.findTopByOrderByRoundDesc().get().round
+        assertEquals(3, latestRound)
     }
 }
