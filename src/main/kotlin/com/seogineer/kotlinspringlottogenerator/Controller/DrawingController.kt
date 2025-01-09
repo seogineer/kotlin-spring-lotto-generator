@@ -1,6 +1,7 @@
 package com.seogineer.kotlinspringlottogenerator.Controller
 
 import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
+import com.seogineer.kotlinspringlottogenerator.Dto.UploadResponse
 import com.seogineer.kotlinspringlottogenerator.Entity.Drawing
 import com.seogineer.kotlinspringlottogenerator.Service.DrawingService
 import org.springframework.data.domain.Page
@@ -31,12 +32,12 @@ class DrawingController(
     }
 
     @PostMapping("/upload")
-    fun uploadFile(@RequestParam("file") file: MultipartFile): ResponseEntity<String> {
+    fun uploadFile(@RequestParam("file") file: MultipartFile): ResponseEntity<UploadResponse> {
         return try {
             drawingService.readExcelFile(file)
-            ResponseEntity.ok("파일 업로드 및 저장 성공!")
+            ResponseEntity.ok(UploadResponse(message = "파일 업로드 및 저장 성공!"))
         } catch (e: Exception) {
-            ResponseEntity.badRequest().body("파일 처리 실패: " + e.message)
+            ResponseEntity.badRequest().body(UploadResponse(message = "파일 처리 실패: ${e.message}"))
         }
     }
 }

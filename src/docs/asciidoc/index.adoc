@@ -1,0 +1,43 @@
+= API Documentation
+:doctype: book
+:toc: left
+:toclevels: 3
+
+== Get Drawings API
+
+=== 요청 예제
+include::{snippets}/get-drawings/http-request.adoc[]
+
+=== 요청 파라미터
+include::{snippets}/get-drawings/request-parameters.adoc[]
+
+=== 응답 예제
+include::{snippets}/get-drawings/http-response.adoc[]
+
+=== 응답 필드 설명
+include::{snippets}/get-drawings/response-fields.adoc[]
+
+== Generate Lotto Numbers API
+
+=== 요청 예제
+include::{snippets}/generate-recommend-number/http-request.adoc[]
+
+=== 응답 예제
+include::{snippets}/generate-recommend-number/http-response.adoc[]
+
+=== 응답 필드 설명
+include::{snippets}/generate-recommend-number/response-fields.adoc[]
+
+== Upload File API
+
+=== 요청 예제
+include::{snippets}/upload-default-data-using-excel/curl-request.adoc[]
+
+=== 요청 필드 설명
+include::{snippets}/upload-default-data-using-excel/request-parts.adoc[]
+
+=== 응답 예제
+include::{snippets}/upload-default-data-using-excel/http-response.adoc[]
+
+=== 응답 필드 설명
+include::{snippets}/upload-default-data-using-excel/response-fields.adoc[]

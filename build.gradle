@@ -5,6 +5,7 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.noarg' version '1.6.0'
     id 'org.springframework.boot' version '2.7.18'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'org.asciidoctor.jvm.convert' version '3.3.2'
     // queryDSL
     id 'org.jetbrains.kotlin.kapt' version '1.6.21'
     id 'idea'
@@ -23,6 +24,7 @@ configurations {
     compileOnly {
         extendsFrom annotationProcessor
     }
+    asciidoctorExt
 }
 
 repositories {
@@ -42,6 +44,8 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit5'
     testImplementation 'io.rest-assured:rest-assured:3.3.0'
+    asciidoctorExt 'org.springframework.restdocs:spring-restdocs-asciidoctor'
+    testImplementation 'org.springframework.restdocs:spring-restdocs-restassured'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     // poi
     implementation group: 'org.apache.poi', name: 'poi', version: '5.0.0'
@@ -70,8 +74,29 @@ noArg {
     annotation 'javax.persistence.Entity'
 }
 
+ext {
+    snippetsDir = file('build/generated-snippets')
+}
+
+test {
+    outputs.dir snippetsDir
+}
+
+asciidoctor {
+    inputs.dir snippetsDir
+    configurations 'asciidoctorExt'
+    dependsOn test
+}
+
 bootJar {
     archiveFileName = "${rootProject.name}.jar"
+    // restdocs
+    dependsOn asciidoctor
+    delete file('src/main/resources/static/docs/*')
+    copy {
+        from asciidoctor.outputDir
+        into "src/main/resources/static/docs"
+    }
 }
 
 tasks.named('test') {
