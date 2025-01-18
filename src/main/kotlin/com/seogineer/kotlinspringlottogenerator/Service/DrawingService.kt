@@ -1,5 +1,6 @@
 package com.seogineer.kotlinspringlottogenerator.Service
 
+import com.seogineer.kotlinspringlottogenerator.Dto.FrequencyResponse
 import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
 import com.seogineer.kotlinspringlottogenerator.Entity.Drawing
 import com.seogineer.kotlinspringlottogenerator.Entity.DrawingRepository
@@ -31,6 +32,10 @@ class DrawingService(
 
     fun generateLottoNumbers(): LottoNumberResponse {
         return drawingRepository.generateLottoNumbers()
+    }
+
+    fun getMostFrequentNumbers(): List<FrequencyResponse> {
+        return drawingRepository.getMostFrequentNumbers()
     }
 
     fun readExcelFile(file: MultipartFile) {

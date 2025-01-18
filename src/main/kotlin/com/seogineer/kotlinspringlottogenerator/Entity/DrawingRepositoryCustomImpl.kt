@@ -109,4 +109,78 @@ class DrawingRepositoryCustomImpl(private val queryFactory: JPAQueryFactory) : D
         }
         return validCombinations
     }
+
+    override fun getMostFrequentNumbers(): List<FrequencyResponse> {
+        val oneCounts = queryFactory.select(drawing.one, drawing.one.count())
+            .from(drawing)
+            .groupBy(drawing.one)
+            .fetch()
+        val twoCounts = queryFactory.select(drawing.two, drawing.two.count())
+            .from(drawing)
+            .groupBy(drawing.two)
+            .fetch()
+        val threeCounts = queryFactory.select(drawing.three, drawing.three.count())
+            .from(drawing)
+            .groupBy(drawing.three)
+            .fetch()
+        val fourCounts = queryFactory.select(drawing.four, drawing.four.count())
+            .from(drawing)
+            .groupBy(drawing.four)
+            .fetch()
+        val fiveCounts = queryFactory.select(drawing.five, drawing.five.count())
+            .from(drawing)
+            .groupBy(drawing.five)
+            .fetch()
+        val sixCounts = queryFactory.select(drawing.six, drawing.six.count())
+            .from(drawing)
+            .groupBy(drawing.six)
+            .fetch()
+
+        val allCounts = (oneCounts + twoCounts + threeCounts + fourCounts + fiveCounts + sixCounts)
+            .groupBy { it.get(0, Int::class.java) } // 번호별로 그룹화
+            .mapValues { it.value.sumOf { row -> row.get(1, Long::class.java) ?: 0} } // 빈도 합산
+
+        val sortedCounts = allCounts.entries.sortedByDescending { it.value }
+
+        val top5Cutoff = sortedCounts.getOrNull(4)?.value ?: 0L
+
+        return sortedCounts
+            .filter { it.value >= top5Cutoff }
+            .mapIndexed { index, entry ->
+                FrequencyResponse(
+                    number = entry.key ?: 0,
+                    position = index + 1,
+                    frequency = entry.value
+                )
+            }
+    }
+
+    override fun getTopNumbersPerPosition(): List<FrequencyResponse> {
+        val position1 = getTopNumbers(drawing.one, 1)
+        val position2 = getTopNumbers(drawing.two, 2)
+        val position3 = getTopNumbers(drawing.three, 3)
+        val position4 = getTopNumbers(drawing.four, 4)
+        val position5 = getTopNumbers(drawing.five, 5)
+        val position6 = getTopNumbers(drawing.six, 6)
+
+        return (position1 + position2 + position3 + position4 + position5 + position6)
+            .sortedWith(compareBy({ it.position }, { -it.frequency }))
+    }
+
+    private fun getTopNumbers(column: NumberPath<Int>, position: Int): List<FrequencyResponse> {
+        return queryFactory
+            .select(column, column.count())
+            .from(drawing)
+            .groupBy(column)
+            .orderBy(column.count().desc())
+            .limit(5)
+            .fetch()
+            .map { row ->
+                FrequencyResponse(
+                    number = row.get(column) ?: 0,
+                    position = position,
+                    frequency = row.get(column.count()) ?: 0
+                )
+            }
+    }
 }

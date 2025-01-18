@@ -3,8 +3,15 @@ package com.seogineer.kotlinspringlottogenerator.Entity
 import com.seogineer.kotlinspringlottogenerator.Config.QuerydslConfig
 import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
 import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호1
+import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호10
 import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호2
 import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호3
+import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호4
+import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호5
+import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호6
+import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호7
+import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호8
+import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호9
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -30,6 +37,13 @@ class DrawingRepositoryTest(
         drawingRepository.save(당첨번호1)
         drawingRepository.save(당첨번호2)
         drawingRepository.save(당첨번호3)
+        drawingRepository.save(당첨번호4)
+        drawingRepository.save(당첨번호5)
+        drawingRepository.save(당첨번호6)
+        drawingRepository.save(당첨번호7)
+        drawingRepository.save(당첨번호8)
+        drawingRepository.save(당첨번호9)
+        drawingRepository.save(당첨번호10)
     }
 
     @Test
@@ -38,8 +52,8 @@ class DrawingRepositoryTest(
 
         val drawings: Page<Drawing> = drawingRepository.getDrawings(pageable)
 
-        assertEquals(3, drawings.content.size)
-        assertEquals(3, drawings.totalElements)
+        assertEquals(5, drawings.content.size)
+        assertEquals(10, drawings.totalElements)
         assertEquals(0, drawings.pageable.pageNumber)
         assertEquals(5, drawings.pageable.pageSize)
     }
@@ -61,6 +75,40 @@ class DrawingRepositoryTest(
     @Test
     fun 가장_최근_회차_조회() {
         val latestRound = drawingRepository.findTopByOrderByRoundDesc().get().round
-        assertEquals(3, latestRound)
+        assertEquals(10, latestRound)
+    }
+
+    @Test
+    fun 가장_많이_뽑힌_번호_조회() {
+        val mostFrequentNumbers = drawingRepository.getMostFrequentNumbers()
+
+        assertEquals(6, mostFrequentNumbers.size)
+
+        val isValid = mostFrequentNumbers[0].number in 1..45 &&
+                mostFrequentNumbers[1].number in 1..45 &&
+                mostFrequentNumbers[2].number in 1..45 &&
+                mostFrequentNumbers[3].number in 1..45 &&
+                mostFrequentNumbers[4].number in 1..45 &&
+                mostFrequentNumbers[5].number in 1..45
+        assertTrue(isValid)
+
+        assertEquals(40, mostFrequentNumbers[0].number)
+        assertEquals(5, mostFrequentNumbers[0].frequency)
+        assertEquals(16, mostFrequentNumbers[1].number)
+        assertEquals(4, mostFrequentNumbers[1].frequency)
+        assertEquals(25, mostFrequentNumbers[2].number)
+        assertEquals(4, mostFrequentNumbers[2].frequency)
+        assertEquals(42, mostFrequentNumbers[3].number)
+        assertEquals(4, mostFrequentNumbers[3].frequency)
+        assertEquals(9, mostFrequentNumbers[4].number)
+        assertEquals(3, mostFrequentNumbers[4].frequency)
+        assertEquals(27, mostFrequentNumbers[5].number)
+        assertEquals(3, mostFrequentNumbers[5].frequency)
+    }
+
+    @Test
+    fun 각_자리별_가장_많이_뽑힌_번호_상위_5개_조회() {
+        val mostFrequentNumbersPerPosition = drawingRepository.getTopNumbersPerPosition()
+        assertEquals(30, mostFrequentNumbersPerPosition.size)
     }
 }

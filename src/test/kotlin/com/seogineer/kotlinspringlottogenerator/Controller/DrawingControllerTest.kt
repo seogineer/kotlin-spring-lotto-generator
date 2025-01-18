@@ -65,7 +65,7 @@ class DrawingControllerTest {
             .multiPart("file", File(ClassLoader.getSystemResource("excel.xlsx").file))
             .accept(ContentType.JSON)
             .`when`()
-            .post("/upload")
+            .post("/drawings/upload")
             .then()
             .statusCode(HttpStatus.OK.value())
             .extract()
@@ -79,7 +79,7 @@ class DrawingControllerTest {
             .multiPart("file", File(ClassLoader.getSystemResource("excel.xlsx").file))
             .accept(ContentType.JSON)
             .`when`()
-            .post("/upload")
+            .post("/drawings/upload")
 
         val response = given(spec).log().all()
             .filter(
@@ -142,7 +142,7 @@ class DrawingControllerTest {
             .multiPart("file", File(ClassLoader.getSystemResource("excel.xlsx").file))
             .accept(ContentType.JSON)
             .`when`()
-            .post("/upload")
+            .post("/drawings/upload")
             .then()
             .statusCode(HttpStatus.OK.value())
             .extract()
@@ -163,7 +163,7 @@ class DrawingControllerTest {
             )
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .`when`()
-            .get("/generate")
+            .get("/drawings/generate")
             .then().log().all()
             .extract()
 

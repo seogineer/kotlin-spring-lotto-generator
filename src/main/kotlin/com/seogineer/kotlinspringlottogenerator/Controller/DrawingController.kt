@@ -1,5 +1,6 @@
 package com.seogineer.kotlinspringlottogenerator.Controller
 
+import com.seogineer.kotlinspringlottogenerator.Dto.FrequencyResponse
 import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
 import com.seogineer.kotlinspringlottogenerator.Dto.UploadResponse
 import com.seogineer.kotlinspringlottogenerator.Entity.Drawing
@@ -20,18 +21,28 @@ class DrawingController(
 
     @GetMapping("/drawings")
     fun getDrawings(
-        @RequestParam page: Int,
-        @RequestParam size: Int
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "5") size: Int
     ): Page<Drawing> {
         return drawingService.getDrawings(page, size)
     }
 
-    @GetMapping("/generate")
+    @GetMapping("/drawings/generate")
     fun generateLottoNumbers(): LottoNumberResponse {
         return drawingService.generateLottoNumbers()
     }
 
-    @PostMapping("/upload")
+    @GetMapping("/drawings/frequent")
+    fun getMostFrequentNumbers(): List<FrequencyResponse> {
+        return drawingService.getMostFrequentNumbers()
+    }
+
+//    @GetMapping("/drawings/position/frequent")
+//    fun getMostFrequentNumbers(): List<FrequencyResponse> {
+//        return drawingService.getMostFrequentNumbers()
+//    }
+
+    @PostMapping("/drawings/upload")
     fun uploadFile(@RequestParam("file") file: MultipartFile): ResponseEntity<UploadResponse> {
         return try {
             drawingService.readExcelFile(file)
