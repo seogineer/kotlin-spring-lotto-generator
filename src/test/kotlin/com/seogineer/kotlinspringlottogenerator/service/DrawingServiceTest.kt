@@ -13,6 +13,7 @@ import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companio
 import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호7
 import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호8
 import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호9
+import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -77,6 +78,7 @@ class DrawingServiceTest {
 
         val latestRound = drawingRepository.findTopByOrderByRoundDesc().get().round
         assertEquals(3, latestRound)
+        verify(drawingRepository, times(1)).findTopByOrderByRoundDesc()
     }
 
     @Test
@@ -92,6 +94,7 @@ class DrawingServiceTest {
         `when`(drawingRepository.getMostFrequentNumbers()).thenReturn(drawings)
 
         val result = drawingRepository.getMostFrequentNumbers()
+        assertNotNull(result)
         assertEquals(5, result.size)
         assertEquals(1, result[0].number)
         assertEquals(30, result[0].frequency)
@@ -103,5 +106,60 @@ class DrawingServiceTest {
         assertEquals(7, result[3].frequency)
         assertEquals(5, result[4].number)
         assertEquals(7, result[4].frequency)
+        val frequencies = result.map { it.frequency }
+        Assertions.assertThat(frequencies).isSortedAccordingTo(Comparator.reverseOrder())
+    }
+
+    @Test
+    fun 자리별_가장_많이_뽑힌_번호_조회() {
+        val drawings = listOf(
+            FrequencyResponse(1, 1, 30),
+            FrequencyResponse(3, 1, 15),
+            FrequencyResponse(2, 1, 10),
+            FrequencyResponse(4, 1, 7),
+            FrequencyResponse(5, 1, 7),
+            FrequencyResponse(1, 2, 30),
+            FrequencyResponse(3, 2, 15),
+            FrequencyResponse(2, 2, 10),
+            FrequencyResponse(4, 2, 7),
+            FrequencyResponse(5, 2, 7),
+            FrequencyResponse(1, 3, 30),
+            FrequencyResponse(3, 3, 15),
+            FrequencyResponse(2, 3, 10),
+            FrequencyResponse(4, 3, 7),
+            FrequencyResponse(5, 3, 7),
+            FrequencyResponse(1, 4, 30),
+            FrequencyResponse(3, 4, 15),
+            FrequencyResponse(2, 4, 10),
+            FrequencyResponse(4, 4, 7),
+            FrequencyResponse(5, 4, 7),
+            FrequencyResponse(1, 5, 30),
+            FrequencyResponse(3, 5, 15),
+            FrequencyResponse(2, 5, 10),
+            FrequencyResponse(4, 5, 7),
+            FrequencyResponse(5, 5, 7),
+            FrequencyResponse(1, 6, 30),
+            FrequencyResponse(3, 6, 15),
+            FrequencyResponse(2, 6, 10),
+            FrequencyResponse(4, 6, 7),
+            FrequencyResponse(5, 6, 7),
+        )
+
+        `when`(drawingRepository.getTopNumbersPerPosition()).thenReturn(drawings)
+
+        val result = drawingRepository.getTopNumbersPerPosition()
+
+        assertNotNull(result)
+        assertEquals(30, result.size)
+
+        val groupedByPosition = result.groupBy { it.position }
+        groupedByPosition.forEach { (_, frequencies) ->
+            assertEquals(5, frequencies.size)
+            val sortedFrequencies = frequencies.sortedByDescending { it.frequency }
+            assertEquals(sortedFrequencies, frequencies)
+        }
+
+        val sortedResult = result.sortedWith(compareBy({ it.position }, { -it.frequency }))
+        assertEquals(sortedResult, result)
     }
 }
