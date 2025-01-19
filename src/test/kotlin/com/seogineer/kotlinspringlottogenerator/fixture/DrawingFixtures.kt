@@ -1,4 +1,4 @@
-package com.seogineer.kotlinspringlottogenerator.Fixture
+package com.seogineer.kotlinspringlottogenerator.fixture
 
 import com.seogineer.kotlinspringlottogenerator.entity.Drawing
 import java.math.BigInteger

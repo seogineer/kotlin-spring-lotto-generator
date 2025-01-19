@@ -2,16 +2,16 @@ package com.seogineer.kotlinspringlottogenerator.entity
 
 import com.seogineer.kotlinspringlottogenerator.config.QuerydslConfig
 import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
-import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호1
-import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호10
-import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호2
-import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호3
-import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호4
-import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호5
-import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호6
-import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호7
-import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호8
-import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호9
+import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호1
+import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호10
+import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호2
+import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호3
+import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호4
+import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호5
+import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호6
+import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호7
+import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호8
+import com.seogineer.kotlinspringlottogenerator.fixture.DrawingFixtures.Companion.당첨번호9
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
