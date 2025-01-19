@@ -38,7 +38,16 @@ class DrawingService(
         return drawingRepository.getMostFrequentNumbers()
     }
 
+    fun getTopNumbersPerPosition(): List<FrequencyResponse> {
+        return drawingRepository.getTopNumbersPerPosition()
+    }
+
     fun readExcelFile(file: MultipartFile) {
+        val fileName = file.originalFilename ?: ""
+        if (!fileName.endsWith(".xlsx")) {
+            throw IllegalArgumentException("지원하지 않는 파일 형식입니다. 엑셀 파일(.xlsx)만 업로드할 수 있습니다.")
+        }
+
         try {
             file.inputStream.use { inputStream ->
                 val workbook = WorkbookFactory.create(inputStream)

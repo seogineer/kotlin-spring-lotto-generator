@@ -9,6 +9,7 @@ import io.restassured.filter.Filter
 import io.restassured.http.ContentType
 import io.restassured.specification.RequestSpecification
 import org.assertj.core.api.Assertions.assertThat
+import org.hamcrest.core.IsEqual.equalTo
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -18,7 +19,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.restdocs.RestDocumentationContextProvider
 import org.springframework.restdocs.RestDocumentationExtension
-import org.springframework.restdocs.operation.preprocess.Preprocessors.*
+import org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
@@ -49,8 +50,30 @@ class DrawingControllerTest {
     }
 
     @Test
-    fun 엑셀_업로드() {
-        val response = given(spec)
+    fun 엑셀_업로드_실패_파일이_없는_상태() {
+        given()
+            .multiPart("file", "")
+            .accept(ContentType.JSON)
+            .`when`()
+            .post("/drawings/upload")
+            .then()
+            .statusCode(HttpStatus.BAD_REQUEST.value())
+    }
+
+    @Test
+    fun 엑셀_업로드_실패_잘못된_파일_형식() {
+        given()
+            .multiPart("file", File(ClassLoader.getSystemResource("invalid.txt").file))
+            .accept(ContentType.JSON)
+            .`when`()
+            .post("/drawings/upload")
+            .then()
+            .statusCode(HttpStatus.BAD_REQUEST.value())
+    }
+
+    @Test
+    fun 엑셀_업로드_성공() {
+        given(spec)
             .filter(
                 document(
                     "upload-default-data-using-excel",
@@ -68,9 +91,7 @@ class DrawingControllerTest {
             .post("/drawings/upload")
             .then()
             .statusCode(HttpStatus.OK.value())
-            .extract()
-
-        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value())
+            .body("message", equalTo("파일 업로드 및 저장 성공!"))
     }
 
     @Test
@@ -175,5 +196,106 @@ class DrawingControllerTest {
         assertThat(recommededNumbers.four).isBetween(1, 45)
         assertThat(recommededNumbers.five).isBetween(1, 45)
         assertThat(recommededNumbers.six).isBetween(1, 45)
+    }
+
+    @Test
+    fun 가장_빈도가_높은_번호_조회_성공 () {
+        given()
+            .multiPart("file", File(ClassLoader.getSystemResource("excel.xlsx").file))
+            .accept(ContentType.JSON)
+            .`when`()
+            .post("/drawings/upload")
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .extract()
+
+        val response = given(spec).log().all()
+            .filter(
+                document(
+                    "most-frequent-numbers",
+                    responseFields(
+                        fieldWithPath("[].number").description("당첨번호").type(JsonFieldType.NUMBER),
+                        fieldWithPath("[].position").description("인덱스").type(JsonFieldType.NUMBER),
+                        fieldWithPath("[].frequency").description("뽑힌 횟수").type(JsonFieldType.NUMBER),
+                    )
+                )
+            )
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .`when`()
+            .get("/drawings/frequent")
+            .then().log().all()
+            .extract()
+
+        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value())
+
+        val responseBody = response.jsonPath().getList<Map<String, Any>>("")
+
+        assertThat(responseBody).isNotNull
+        assertThat(responseBody).isNotEmpty
+
+        val firstItem = responseBody[0]
+        assertThat(firstItem["number"]).isNotNull
+        assertThat(firstItem["position"]).isNotNull
+        assertThat(firstItem["frequency"]).isNotNull
+
+        responseBody.forEach {
+            assertThat(it["number"]).isInstanceOf(Integer::class.java)
+            assertThat(it["position"]).isInstanceOf(Integer::class.java)
+            assertThat(it["frequency"]).isInstanceOf(Integer::class.java)
+        }
+
+        val frequencies = responseBody.map { it["frequency"] as Int }
+        assertThat(frequencies).isSortedAccordingTo(Comparator.reverseOrder())
+    }
+
+    @Test
+    fun 자리별_가장_빈도가_높은_번호_조회_성공() {
+        given()
+            .multiPart("file", File(ClassLoader.getSystemResource("excel.xlsx").file))
+            .accept(ContentType.JSON)
+            .`when`()
+            .post("/drawings/upload")
+            .then()
+            .statusCode(HttpStatus.OK.value())
+            .extract()
+
+        val response = given(spec).log().all()
+            .filter(
+                document(
+                    "most-frequent-numbers-by-position",
+                    responseFields(
+                        fieldWithPath("[].number").description("당첨번호").type(JsonFieldType.NUMBER),
+                        fieldWithPath("[].position").description("자릿수").type(JsonFieldType.NUMBER),
+                        fieldWithPath("[].frequency").description("뽑힌 횟수").type(JsonFieldType.NUMBER),
+                    )
+                )
+            )
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .`when`()
+            .get("/drawings/position/frequent")
+            .then().log().all()
+            .statusCode(HttpStatus.OK.value())
+            .extract()
+
+        assertThat(response.statusCode()).isEqualTo(HttpStatus.OK.value())
+
+        val responseBody = response.jsonPath().getList<Map<String, Any>>("")
+
+        assertThat(responseBody).isNotNull
+        assertThat(responseBody).isNotEmpty
+
+        val firstItem = responseBody[0]
+        assertThat(firstItem["number"]).isNotNull
+        assertThat(firstItem["position"]).isNotNull
+        assertThat(firstItem["frequency"]).isNotNull
+
+        responseBody.forEach {
+            assertThat(it["number"]).isInstanceOf(Integer::class.java)
+            assertThat(it["position"]).isInstanceOf(Integer::class.java)
+            assertThat(it["frequency"]).isInstanceOf(Integer::class.java)
+        }
+
+        val positions = responseBody.map { it["position"] as Int }
+        assertThat(positions).isSortedAccordingTo(Comparator.naturalOrder())
     }
 }

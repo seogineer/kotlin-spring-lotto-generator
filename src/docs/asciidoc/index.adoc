@@ -41,3 +41,25 @@ include::{snippets}/upload-default-data-using-excel/http-response.adoc[]
 
 === 응답 필드 설명
 include::{snippets}/upload-default-data-using-excel/response-fields.adoc[]
+
+== Most Frequent Numbers API
+
+=== 요청 예제
+include::{snippets}/most-frequent-numbers/http-request.adoc[]
+
+=== 응답 예제
+include::{snippets}/most-frequent-numbers/http-response.adoc[]
+
+=== 응답 필드 설명
+include::{snippets}/most-frequent-numbers/response-fields.adoc[]
+
+== Most Frequent Numbers By Position API
+
+=== 요청 예제
+include::{snippets}/most-frequent-numbers-by-position/http-request.adoc[]
+
+=== 응답 예제
+include::{snippets}/most-frequent-numbers-by-position/http-response.adoc[]
+
+=== 응답 필드 설명
+include::{snippets}/most-frequent-numbers-by-position/response-fields.adoc[]

@@ -34,10 +34,8 @@ class DrawingRepositoryCustomImpl(private val queryFactory: JPAQueryFactory) : D
     }
 
     override fun generateLottoNumbers(): LottoNumberResponse {
-        // 각 자리별 번호 출현 빈도수 계산
         val frequencies: MutableList<FrequencyResponse> = ArrayList()
 
-        // 각 컬럼별로 빈도수 계산
         frequencies.addAll(getFrequencyForPosition(drawing.one, 1))
         frequencies.addAll(getFrequencyForPosition(drawing.two, 2))
         frequencies.addAll(getFrequencyForPosition(drawing.three, 3))
@@ -45,7 +43,6 @@ class DrawingRepositoryCustomImpl(private val queryFactory: JPAQueryFactory) : D
         frequencies.addAll(getFrequencyForPosition(drawing.five, 5))
         frequencies.addAll(getFrequencyForPosition(drawing.six, 6))
 
-        // 각 자리별로 가장 많이 나온 상위 5개 번호 선택
         val topNumbersByPosition: MutableMap<Int, List<Int>> = HashMap()
         for (position in 1..6) {
             val topNumbers = frequencies
@@ -56,14 +53,12 @@ class DrawingRepositoryCustomImpl(private val queryFactory: JPAQueryFactory) : D
             topNumbersByPosition[position] = topNumbers
         }
 
-        // 중복되지 않는 번호 조합 생성
         val validCombinations = generateValidCombinations(topNumbersByPosition)
 
         if (validCombinations.isEmpty()) {
             return LottoNumberResponse(0, 0, 0, 0, 0, 0)
         }
 
-        // 랜덤하게 하나의 조합 선택
         val randomIndex: Int = Random().nextInt(validCombinations.size)
         val selectedNumbers = validCombinations[randomIndex]
         return LottoNumberResponse(
@@ -137,18 +132,18 @@ class DrawingRepositoryCustomImpl(private val queryFactory: JPAQueryFactory) : D
             .fetch()
 
         val allCounts = (oneCounts + twoCounts + threeCounts + fourCounts + fiveCounts + sixCounts)
-            .groupBy { it.get(0, Int::class.java) } // 번호별로 그룹화
-            .mapValues { it.value.sumOf { row -> row.get(1, Long::class.java) ?: 0} } // 빈도 합산
+            .groupBy { it.get(0, Int::class.java) ?: 0 }
+            .mapValues { it.value.sumOf { row -> row.get(1, Long::class.java) ?: 0} }
 
         val sortedCounts = allCounts.entries.sortedByDescending { it.value }
 
-        val top5Cutoff = sortedCounts.getOrNull(4)?.value ?: 0L
+        val top5Cutoff = sortedCounts.getOrNull(4)?.value ?: 0L // 중복이 존재하는 경우
 
         return sortedCounts
             .filter { it.value >= top5Cutoff }
             .mapIndexed { index, entry ->
                 FrequencyResponse(
-                    number = entry.key ?: 0,
+                    number = entry.key,
                     position = index + 1,
                     frequency = entry.value
                 )

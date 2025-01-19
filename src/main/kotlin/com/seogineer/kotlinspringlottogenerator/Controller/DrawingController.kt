@@ -37,10 +37,10 @@ class DrawingController(
         return drawingService.getMostFrequentNumbers()
     }
 
-//    @GetMapping("/drawings/position/frequent")
-//    fun getMostFrequentNumbers(): List<FrequencyResponse> {
-//        return drawingService.getMostFrequentNumbers()
-//    }
+    @GetMapping("/drawings/position/frequent")
+    fun getTopNumbersPerPosition(): List<FrequencyResponse> {
+        return drawingService.getTopNumbersPerPosition()
+    }
 
     @PostMapping("/drawings/upload")
     fun uploadFile(@RequestParam("file") file: MultipartFile): ResponseEntity<UploadResponse> {

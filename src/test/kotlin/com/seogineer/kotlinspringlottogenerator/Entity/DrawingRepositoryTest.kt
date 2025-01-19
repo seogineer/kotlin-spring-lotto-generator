@@ -108,7 +108,19 @@ class DrawingRepositoryTest(
 
     @Test
     fun 각_자리별_가장_많이_뽑힌_번호_상위_5개_조회() {
-        val mostFrequentNumbersPerPosition = drawingRepository.getTopNumbersPerPosition()
-        assertEquals(30, mostFrequentNumbersPerPosition.size)
+        val response = drawingRepository.getTopNumbersPerPosition()
+
+        assertEquals(true, response.isNotEmpty())
+        assertEquals(30, response.size)
+
+        val groupedByPosition = response.groupBy { it.position }
+        groupedByPosition.forEach { (position, frequencies) ->
+            assertEquals(5, frequencies.size)
+            val sortedFrequencies = frequencies.sortedByDescending { it.frequency }
+            assertEquals(sortedFrequencies, frequencies)
+        }
+
+        val sortedPositions = response.sortedBy { it.position }
+        assertEquals(sortedPositions, response)
     }
 }
