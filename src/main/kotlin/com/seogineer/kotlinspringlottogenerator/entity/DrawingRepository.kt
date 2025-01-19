@@ -1,4 +1,4 @@
-package com.seogineer.kotlinspringlottogenerator.Entity
+package com.seogineer.kotlinspringlottogenerator.entity
 
 import org.springframework.data.jpa.repository.JpaRepository
 import java.util.*

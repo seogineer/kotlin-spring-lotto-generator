@@ -1,12 +1,12 @@
-package com.seogineer.kotlinspringlottogenerator.Entity
+package com.seogineer.kotlinspringlottogenerator.entity
 
 import com.querydsl.core.types.Projections
 import com.querydsl.core.types.dsl.Expressions
 import com.querydsl.core.types.dsl.NumberPath
 import com.querydsl.jpa.impl.JPAQueryFactory
-import com.seogineer.kotlinspringlottogenerator.Dto.FrequencyResponse
-import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
-import com.seogineer.kotlinspringlottogenerator.Entity.QDrawing.drawing
+import com.seogineer.kotlinspringlottogenerator.dto.FrequencyResponse
+import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
+import com.seogineer.kotlinspringlottogenerator.entity.QDrawing.drawing
 import lombok.RequiredArgsConstructor
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl

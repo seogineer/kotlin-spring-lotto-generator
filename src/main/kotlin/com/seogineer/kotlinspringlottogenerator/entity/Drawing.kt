@@ -1,4 +1,4 @@
-package com.seogineer.kotlinspringlottogenerator.Entity
+package com.seogineer.kotlinspringlottogenerator.entity
 
 import java.math.BigInteger
 import java.time.LocalDate

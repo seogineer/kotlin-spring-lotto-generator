@@ -1,8 +1,8 @@
-package com.seogineer.kotlinspringlottogenerator.Service
+package com.seogineer.kotlinspringlottogenerator.service
 
-import com.seogineer.kotlinspringlottogenerator.Dto.FrequencyResponse
-import com.seogineer.kotlinspringlottogenerator.Entity.Drawing
-import com.seogineer.kotlinspringlottogenerator.Entity.DrawingRepository
+import com.seogineer.kotlinspringlottogenerator.dto.FrequencyResponse
+import com.seogineer.kotlinspringlottogenerator.entity.Drawing
+import com.seogineer.kotlinspringlottogenerator.entity.DrawingRepository
 import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호1
 import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호10
 import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호2
@@ -42,7 +42,10 @@ class DrawingServiceTest {
         val page = 0
         val size = 5
         val pageable: Pageable = PageRequest.of(page, size)
-        val drawings = listOf(당첨번호1, 당첨번호2, 당첨번호3, 당첨번호4, 당첨번호5, 당첨번호6, 당첨번호7, 당첨번호8, 당첨번호9, 당첨번호10)
+        val drawings = listOf(
+            당첨번호1, 당첨번호2, 당첨번호3, 당첨번호4, 당첨번호5,
+            당첨번호6, 당첨번호7, 당첨번호8, 당첨번호9, 당첨번호10
+        )
         val drawingPage: Page<Drawing> = PageImpl(drawings, pageable, drawings.size.toLong())
 
         `when`(drawingRepository.getDrawings(pageable)).thenReturn(drawingPage)

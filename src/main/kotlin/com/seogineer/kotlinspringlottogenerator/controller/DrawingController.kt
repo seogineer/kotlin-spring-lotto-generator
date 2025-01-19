@@ -1,10 +1,10 @@
-package com.seogineer.kotlinspringlottogenerator.Controller
+package com.seogineer.kotlinspringlottogenerator.controller
 
-import com.seogineer.kotlinspringlottogenerator.Dto.FrequencyResponse
-import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
-import com.seogineer.kotlinspringlottogenerator.Dto.UploadResponse
-import com.seogineer.kotlinspringlottogenerator.Entity.Drawing
-import com.seogineer.kotlinspringlottogenerator.Service.DrawingService
+import com.seogineer.kotlinspringlottogenerator.dto.FrequencyResponse
+import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
+import com.seogineer.kotlinspringlottogenerator.dto.UploadResponse
+import com.seogineer.kotlinspringlottogenerator.entity.Drawing
+import com.seogineer.kotlinspringlottogenerator.service.DrawingService
 import org.springframework.data.domain.Page
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping

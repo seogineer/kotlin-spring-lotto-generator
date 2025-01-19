@@ -1,4 +1,4 @@
-package com.seogineer.kotlinspringlottogenerator.Config
+package com.seogineer.kotlinspringlottogenerator.config
 
 import com.querydsl.jpa.impl.JPAQueryFactory
 import org.springframework.context.annotation.Bean

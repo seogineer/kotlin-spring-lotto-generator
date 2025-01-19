@@ -1,4 +1,4 @@
-package com.seogineer.kotlinspringlottogenerator.Entity
+package com.seogineer.kotlinspringlottogenerator.entity
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows

@@ -1,9 +1,9 @@
-package com.seogineer.kotlinspringlottogenerator.Service
+package com.seogineer.kotlinspringlottogenerator.service
 
-import com.seogineer.kotlinspringlottogenerator.Dto.FrequencyResponse
-import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
-import com.seogineer.kotlinspringlottogenerator.Entity.Drawing
-import com.seogineer.kotlinspringlottogenerator.Entity.DrawingRepository
+import com.seogineer.kotlinspringlottogenerator.dto.FrequencyResponse
+import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
+import com.seogineer.kotlinspringlottogenerator.entity.Drawing
+import com.seogineer.kotlinspringlottogenerator.entity.DrawingRepository
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.WorkbookFactory

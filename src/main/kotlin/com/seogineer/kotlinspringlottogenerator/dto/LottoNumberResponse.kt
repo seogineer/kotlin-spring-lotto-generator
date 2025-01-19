@@ -1,4 +1,4 @@
-package com.seogineer.kotlinspringlottogenerator.Dto
+package com.seogineer.kotlinspringlottogenerator.dto
 
 data class LottoNumberResponse (
     val one: Int,

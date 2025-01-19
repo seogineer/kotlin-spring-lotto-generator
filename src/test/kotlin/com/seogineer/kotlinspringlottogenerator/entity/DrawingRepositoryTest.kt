@@ -1,7 +1,7 @@
-package com.seogineer.kotlinspringlottogenerator.Entity
+package com.seogineer.kotlinspringlottogenerator.entity
 
-import com.seogineer.kotlinspringlottogenerator.Config.QuerydslConfig
-import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
+import com.seogineer.kotlinspringlottogenerator.config.QuerydslConfig
+import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
 import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호1
 import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호10
 import com.seogineer.kotlinspringlottogenerator.Fixture.DrawingFixtures.Companion.당첨번호2

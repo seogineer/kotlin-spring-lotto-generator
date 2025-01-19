@@ -1,6 +1,6 @@
 package com.seogineer.kotlinspringlottogenerator.Fixture
 
-import com.seogineer.kotlinspringlottogenerator.Entity.Drawing
+import com.seogineer.kotlinspringlottogenerator.entity.Drawing
 import java.math.BigInteger
 import java.time.LocalDate
 

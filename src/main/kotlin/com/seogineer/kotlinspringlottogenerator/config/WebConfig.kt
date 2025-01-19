@@ -1,4 +1,4 @@
-package com.seogineer.kotlinspringlottogenerator.Config
+package com.seogineer.kotlinspringlottogenerator.config
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration

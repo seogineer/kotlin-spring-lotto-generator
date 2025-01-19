@@ -1,7 +1,7 @@
-package com.seogineer.kotlinspringlottogenerator.Controller
+package com.seogineer.kotlinspringlottogenerator.controller
 
-import com.seogineer.kotlinspringlottogenerator.Dto.LottoNumberResponse
-import com.seogineer.kotlinspringlottogenerator.Entity.Drawing
+import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
+import com.seogineer.kotlinspringlottogenerator.entity.Drawing
 import io.restassured.RestAssured
 import io.restassured.RestAssured.given
 import io.restassured.builder.RequestSpecBuilder
