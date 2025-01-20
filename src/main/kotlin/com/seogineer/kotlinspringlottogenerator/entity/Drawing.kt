@@ -1,5 +1,6 @@
 package com.seogineer.kotlinspringlottogenerator.entity
 
+import java.io.Serializable
 import java.math.BigInteger
 import java.time.LocalDate
 import javax.persistence.Entity
@@ -21,7 +22,7 @@ class Drawing (
     val bonus: Int,
     val firstWinPrize: BigInteger,
     val firstWinners: Int,
-){
+) : Serializable {
     init {
         require(round > 0) {
             "회차는 항상 0 보다 커야 합니다"

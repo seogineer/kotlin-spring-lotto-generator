@@ -8,11 +8,14 @@ import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.json.JSONObject
+import org.springframework.cache.annotation.CacheEvict
+import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.multipart.MultipartFile
 import java.math.BigInteger
@@ -21,10 +24,12 @@ import java.time.format.DateTimeFormatter
 
 
 @Service
+@Transactional(readOnly = true)
 class DrawingService(
     private val drawingRepository: DrawingRepository
 ) {
 
+    @Cacheable(value = ["drawings"], key = "#page")
     fun getDrawings(page: Int, size: Int): Page<Drawing> {
         val pageable: Pageable = PageRequest.of(page, size)
         return drawingRepository.getDrawings(pageable)
@@ -34,14 +39,18 @@ class DrawingService(
         return drawingRepository.generateLottoNumbers()
     }
 
+    @Cacheable(value = ["mostFrequentNumbers"])
     fun getMostFrequentNumbers(): List<FrequencyResponse> {
         return drawingRepository.getMostFrequentNumbers()
     }
 
+    @Cacheable(value = ["topNumbersPerPosition"])
     fun getTopNumbersPerPosition(): List<FrequencyResponse> {
         return drawingRepository.getTopNumbersPerPosition()
     }
 
+    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "mostFrequentNumbers"], allEntries = true)
+    @Transactional
     fun readExcelFile(file: MultipartFile) {
         val fileName = file.originalFilename ?: ""
         if (!fileName.endsWith(".xlsx")) {
@@ -92,7 +101,9 @@ class DrawingService(
         return drawingRepository.findTopByOrderByRoundDesc().get().round + 1
     }
 
+    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "mostFrequentNumbers"], allEntries = true)
     @Scheduled(cron = "0 0 12 ? * MON", zone = "Asia/Seoul")
+    @Transactional
     fun fetchAndStoreLottoNumbers() {
         val latestDrawNo = findLatestRound()
         val apiUrl = "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${latestDrawNo}"
