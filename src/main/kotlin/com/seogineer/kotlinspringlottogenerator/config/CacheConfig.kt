@@ -17,11 +17,7 @@ class CacheConfig {
 
     @Bean
     fun redisConnectionFactory(): RedisConnectionFactory {
-        val serverIp: String = when (System.getProperty("spring.profiles.active")) {
-            "prod" -> "redis"
-            else -> "localhost"
-        }
-        return LettuceConnectionFactory(serverIp, 6379)
+        return LettuceConnectionFactory("redis", 6379)
     }
 
     @Bean
