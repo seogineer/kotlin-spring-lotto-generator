@@ -7,18 +7,14 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @Configuration
+@Profile("dev")
 class WebConfig {
     @Bean
     fun corsConfigurer(): WebMvcConfigurer {
-        val serverIp: String = when (System.getProperty("spring.profiles.active")) {
-            "prod" -> "https://seogineer.github.io"
-            else -> "localhost"
-        }
-
         return object : WebMvcConfigurer {
             override fun addCorsMappings(registry: CorsRegistry) {
                 registry.addMapping("/**")
-                    .allowedOrigins(serverIp)
+                    .allowedOrigins("localhost")
                     .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("*")
                     .allowCredentials(true)
