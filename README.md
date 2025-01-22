@@ -102,7 +102,7 @@ services:
     networks:
       - project_network
 
-	nginx:
+  nginx:
     image: nginx:latest
     container_name: nginx
     ports:
@@ -112,21 +112,24 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - ./data/certbot/conf:/etc/letsencrypt 
       - ./data/certbot/www:/var/www/certbot
+    depends_on:
+      - certbot
     networks:
       - project_network
       
-	certbot:
+  certbot:
     image: certbot/certbot
     container_name: certbot
     volumes:
       - ./data/certbot/conf:/etc/letsencrypt 
       - ./data/certbot/www:/var/www/certbot
+      - ./home/ubuntu/reload-nginx.sh:/reload-nginx.sh
     # entrypoint: "/bin/sh -c 'while :; do sleep 2073600; done'" # 최초 생성 후 80 포트에서 임시로 사용
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; if [ $? -eq 0 ]; then /reload-nginx.sh; fi; sleep 12h & wait $${!}; done;'"
     networks:
       - project_network
 
-	spring-server:
+  spring-server:
     image: kotlin-spring-lotto-generator:latest
     container_name: spring-server
     build:
@@ -252,4 +255,10 @@ docker compose build spring-server
 
 echo "Starting the spring-server container..."
 docker compose up -d spring-server
+```
+
+### reload-nginx.sh
+```shell
+#!/bin/bash
+sudo docker exec nginx nginx -s reload
 ```
