@@ -1,13 +1,14 @@
 package com.seogineer.kotlinspringlottogenerator.service
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.seogineer.kotlinspringlottogenerator.dto.FrequencyResponse
+import com.seogineer.kotlinspringlottogenerator.dto.LatestNumberResponse
 import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
 import com.seogineer.kotlinspringlottogenerator.entity.Drawing
 import com.seogineer.kotlinspringlottogenerator.entity.DrawingRepository
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.WorkbookFactory
-import org.json.JSONObject
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.data.domain.Page
@@ -110,24 +111,24 @@ class DrawingService(
         val restTemplate = RestTemplate()
         try {
             val response = restTemplate.getForObject(apiUrl, String::class.java)
-            val jsonObject = JSONObject(response)
-            if (jsonObject.getString("returnValue").equals("success")) {
-                val round: Int = jsonObject.getInt("drwNo")
-                val date: LocalDate = LocalDate.parse(
-                    jsonObject.getString("drwNoDate"), DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-                val one: Int = jsonObject.getInt("drwtNo1")
-                val two: Int = jsonObject.getInt("drwtNo2")
-                val three: Int = jsonObject.getInt("drwtNo3")
-                val four: Int = jsonObject.getInt("drwtNo4")
-                val five: Int = jsonObject.getInt("drwtNo5")
-                val six: Int = jsonObject.getInt("drwtNo6")
-                val bonus: Int = jsonObject.getInt("bnusNo")
-                val firstWinPrize = BigInteger(jsonObject.getInt("firstWinamnt").toString())
-                val firstWinners: Int = jsonObject.getInt("firstPrzwnerCo")
-                drawingRepository.save(
-                    Drawing(round, date, one, two, three, four, five, six, bonus, firstWinPrize, firstWinners))
+            val latestNumberResponse = ObjectMapper().readValue(response, LatestNumberResponse::class.java)
+            if (latestNumberResponse.returnValue == "success") {
+                val drawing = Drawing(
+                    round = latestNumberResponse.drwNo,
+                    date = LocalDate.parse(latestNumberResponse.drwNoDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                    one = latestNumberResponse.drwtNo1,
+                    two = latestNumberResponse.drwtNo2,
+                    three = latestNumberResponse.drwtNo3,
+                    four = latestNumberResponse.drwtNo4,
+                    five = latestNumberResponse.drwtNo5,
+                    six = latestNumberResponse.drwtNo6,
+                    bonus = latestNumberResponse.bnusNo,
+                    firstWinPrize = latestNumberResponse.firstWinamnt,
+                    firstWinners = latestNumberResponse.firstPrzwnerCo
+                )
+                drawingRepository.save(drawing)
             }
-        } catch (e: java.lang.Exception) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
