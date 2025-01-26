@@ -49,7 +49,7 @@ class DrawingService(
         return drawingRepository.getTopNumbersPerPosition()
     }
 
-    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "mostFrequentNumbers"], allEntries = true)
+    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition"], allEntries = true)
     @Transactional
     fun readExcelFile(file: MultipartFile) {
         val fileName = file.originalFilename ?: ""
@@ -101,7 +101,7 @@ class DrawingService(
         return drawingRepository.findTopByOrderByRoundDesc().get().round + 1
     }
 
-    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "mostFrequentNumbers"], allEntries = true)
+    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition"], allEntries = true)
     @Scheduled(cron = "0 0 12 ? * MON", zone = "Asia/Seoul")
     @Transactional
     fun fetchAndStoreLottoNumbers() {
