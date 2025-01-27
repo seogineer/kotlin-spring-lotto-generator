@@ -3,6 +3,7 @@ package com.seogineer.kotlinspringlottogenerator.dto
 import java.math.BigInteger
 
 data class LatestNumberResponse (
+    val totSellamnt: BigInteger,
     val returnValue: String,
     val drwNo: Int,
     val drwNoDate: String,
