@@ -1,6 +1,7 @@
 package com.seogineer.kotlinspringlottogenerator.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.seogineer.kotlinspringlottogenerator.dto.FrequencyResponse
 import com.seogineer.kotlinspringlottogenerator.dto.LatestNumberResponse
 import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
@@ -103,7 +104,8 @@ class DrawingService(
     }
 
     @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition"], allEntries = true)
-    @Scheduled(cron = "0 0 12 ? * MON", zone = "Asia/Seoul")
+//    @Scheduled(cron = "0 0 12 ? * MON", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
     @Transactional
     fun fetchAndStoreLottoNumbers() {
         val latestDrawNo = findLatestRound()
@@ -111,11 +113,14 @@ class DrawingService(
         val restTemplate = RestTemplate()
         try {
             val response = restTemplate.getForObject(apiUrl, String::class.java)
-            val latestNumberResponse = ObjectMapper().readValue(response, LatestNumberResponse::class.java)
+            val latestNumberResponse = ObjectMapper()
+                                        .registerKotlinModule()
+                                        .readValue(response, LatestNumberResponse::class.java)
             if (latestNumberResponse.returnValue == "success") {
                 val drawing = Drawing(
                     round = latestNumberResponse.drwNo,
-                    date = LocalDate.parse(latestNumberResponse.drwNoDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                    date = LocalDate.parse(
+                        latestNumberResponse.drwNoDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")),
                     one = latestNumberResponse.drwtNo1,
                     two = latestNumberResponse.drwtNo2,
                     three = latestNumberResponse.drwtNo3,
