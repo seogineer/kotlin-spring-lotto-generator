@@ -104,8 +104,7 @@ class DrawingService(
     }
 
     @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition"], allEntries = true)
-//    @Scheduled(cron = "0 0 12 ? * MON", zone = "Asia/Seoul")
-    @Scheduled(cron = "0 */15 * * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 12 ? * MON", zone = "Asia/Seoul")
     @Transactional
     fun fetchAndStoreLottoNumbers() {
         val latestDrawNo = findLatestRound()
