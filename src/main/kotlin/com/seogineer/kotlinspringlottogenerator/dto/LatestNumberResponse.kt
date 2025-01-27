@@ -16,5 +16,5 @@ data class LatestNumberResponse (
     val bnusNo: Int,
     val firstWinamnt: BigInteger,
     val firstPrzwnerCo: Int,
-    val firstAccumamnt: Int,
+    val firstAccumamnt: BigInteger,
 )
