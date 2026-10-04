@@ -273,7 +273,8 @@ http {
 
 ### Dockerfile
 ```dockerfile
-FROM openjdk:17-jdk-slim
+# openjdk 이미지는 Docker Hub에서 제공이 중단되어 eclipse-temurin을 사용
+FROM eclipse-temurin:17-jre-jammy
 
 COPY kotlin-spring-lotto-generator.jar /app/kotlin-spring-lotto-generator.jar
 
