@@ -5,6 +5,7 @@ import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
 import com.seogineer.kotlinspringlottogenerator.dto.UploadResponse
 import com.seogineer.kotlinspringlottogenerator.entity.Drawing
 import com.seogineer.kotlinspringlottogenerator.service.DrawingService
+import com.seogineer.kotlinspringlottogenerator.service.LottoNumberGeneratorService
 import org.springframework.data.domain.Page
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -17,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile
 @RestController
 class DrawingController(
     private val drawingService: DrawingService,
+    private val lottoNumberGeneratorService: LottoNumberGeneratorService,
 ) {
 
     @GetMapping("/drawings")
@@ -29,7 +31,7 @@ class DrawingController(
 
     @GetMapping("/drawings/generate")
     fun generateLottoNumbers(): LottoNumberResponse {
-        return drawingService.generateLottoNumbers()
+        return lottoNumberGeneratorService.generateLottoNumbers()
     }
 
     @GetMapping("/drawings/frequent")

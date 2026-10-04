@@ -10,6 +10,20 @@
 - 역대 당첨 번호 조회
 - 가장 많이 뽑힌 번호 조회
 - 자리별 가장 많이 뽑힌 번호 조회
+- 당첨 번호 자동 갱신 (매주 월요일 낮 12시 KST)
+
+## 번호 추천 방식
+`LottoNumberGeneratorService`가 자리(1~6)별 역대 출현 빈도를 가중치(`빈도^지수`)로 각 자리를 독립적으로 뽑고, 6개가 서로 다르며 오름차순이 아니면 다시 뽑습니다.
+- 지수는 `lotto.recommend.weight-exponent`로 설정합니다 (기본 `0.5`, `0`이면 관측된 번호 중 균등, 클수록 자주 나온 번호 선호).
+- 뽑기에 실패하거나 데이터가 없으면 자리별 상위 5개 번호의 오름차순 조합 중 하나를 고릅니다.
+- 과거 빈도는 다음 추첨의 당첨 확률에 영향을 주지 않습니다. 가중치는 추천되는 조합의 모양을 정할 뿐입니다.
+
+## 당첨 번호 갱신
+`DrawingService.fetchAndStoreLottoNumbers()`가 동행복권 결과 페이지가 사용하는 엔드포인트(`/lt645/selectPstLt645InfoNew.do`)를 호출해 DB에 없는 회차를 모두 저장합니다. DB 최신 회차 + 1부터 반복 호출(최대 50회)하므로 누락된 회차도 한 번에 따라잡습니다. 비공식 엔드포인트라 응답 형식이 바뀌면 갱신이 실패할 수 있습니다.
+
+## 캐시와 조회 속도
+- prod 프로필에서만 Redis 캐시(TTL 7일)를 사용합니다. `drawings`(키 `page:size`, `size <= 20 && page <= 300`일 때만 캐시), `mostFrequentNumbers`, `topNumbersPerPosition`, `frequenciesPerPosition` 4개를 항상 함께 무효화합니다.
+- 앱 시작 직후와 갱신(엑셀 업로드, 스케줄러) 직후에 `DrawingCacheWarmer`가 첫 화면 조회를 미리 실행해 캐시를 채웁니다.
 
 ## 학습 목표
 - 코틀린을 이용한 스프링 부트 서버
@@ -68,10 +82,16 @@ services:
   jenkins:
     image: jenkins/jenkins:lts
     container_name: jenkins
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "8080:8080"
     environment:
-      JAVA_OPTS: "-Xms512m -Xmx1024m"
+      JAVA_OPTS: "-Xms128m -Xmx384m"
     volumes:
       - jenkins_home:/var/jenkins_home
     networks:
@@ -80,14 +100,20 @@ services:
   mysql:
     image: mysql:latest
     container_name: mysql
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: <비밀번호>
       MYSQL_DATABASE: LottoDB
       MYSQL_USER: 
       MYSQL_PASSWORD: 
       TZ: Asia/Seoul
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./my.cnf:/etc/mysql/conf.d/my.cnf
@@ -97,14 +123,26 @@ services:
   redis:
     image: redis:latest
     container_name: redis
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     networks:
       - project_network
 
   nginx:
     image: nginx:latest
     container_name: nginx
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "80:80"
       - "443:443"
@@ -120,6 +158,12 @@ services:
   certbot:
     image: certbot/certbot
     container_name: certbot
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     volumes:
       - ./data/certbot/conf:/etc/letsencrypt 
       - ./data/certbot/www:/var/www/certbot
@@ -132,6 +176,12 @@ services:
   spring-server:
     image: kotlin-spring-lotto-generator:latest
     container_name: spring-server
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     build:
       context: .
       dockerfile: Dockerfile
@@ -204,6 +254,11 @@ http {
         add_header Access-Control-Allow-Methods 'GET, POST, PUT, DELETE, OPTIONS';
         add_header Access-Control-Allow-Headers 'Content-Type, Authorization';
         
+        # 루트 접속 시 프론트엔드(GitHub Pages)로 이동
+        location = / {
+            return 302 https://seogineer.github.io/react-lotto-generator/;
+        }
+
         location / {
             proxy_pass http://spring-server:8081/;
             proxy_http_version 1.1;
@@ -262,3 +317,10 @@ docker compose up -d spring-server
 #!/bin/bash
 sudo docker exec nginx nginx -s reload
 ```
+
+### 서버 메모리 설정 (RAM 1GB)
+한 서버에서 Jenkins, MySQL, Redis, 앱, nginx를 함께 돌리므로 메모리가 빠듯합니다.
+- Jenkins 힙을 `-Xms128m -Xmx384m`로 제한
+- `zram-config`로 압축 메모리 스왑 추가 (`sudo apt-get install -y zram-config`)
+- MySQL(3306)과 Redis(6379)는 `127.0.0.1`로만 공개하고, 컨테이너 간 통신은 `project_network`로 합니다.
+- 모든 컨테이너에 `restart: unless-stopped`와 로그 순환을 설정

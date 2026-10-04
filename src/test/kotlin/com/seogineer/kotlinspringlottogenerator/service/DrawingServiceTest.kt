@@ -31,6 +31,9 @@ import org.mockito.ArgumentCaptor
 import org.springframework.web.client.ResourceAccessException
 import org.springframework.web.client.RestClientException
 import org.springframework.web.client.RestTemplate
+import org.springframework.context.ApplicationEventPublisher
+import org.springframework.mock.web.MockMultipartFile
+import org.junit.jupiter.api.assertThrows
 import java.math.BigInteger
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -43,6 +46,9 @@ class DrawingServiceTest {
 
     @Mock
     private lateinit var restTemplate: RestTemplate
+
+    @Mock
+    private lateinit var eventPublisher: ApplicationEventPublisher
 
     @InjectMocks
     private lateinit var drawingService: DrawingService
@@ -304,6 +310,7 @@ class DrawingServiceTest {
         assertEquals(25, r1244.bonus)
         assertEquals(BigInteger("1604686625"), r1244.firstWinPrize)
         assertEquals(18, r1244.firstWinners)
+        verifySchedulerEventPublishedOnce()
     }
 
     @Test
@@ -342,6 +349,7 @@ class DrawingServiceTest {
 
         assertEquals(listOf(1245), captureRequestedRounds(1))
         verify(drawingRepository, never()).saveAll(anyIterable<Drawing>())
+        verifySchedulerEventPublishedOnce()
     }
 
     @Test
@@ -364,6 +372,7 @@ class DrawingServiceTest {
 
         captureRequestedRounds(1)
         verify(drawingRepository, never()).saveAll(anyIterable<Drawing>())
+        verifySchedulerEventPublishedOnce()
     }
 
     @Test
@@ -375,6 +384,7 @@ class DrawingServiceTest {
 
         captureRequestedRounds(1)
         verify(drawingRepository, never()).saveAll(anyIterable<Drawing>())
+        verifySchedulerEventPublishedOnce()
     }
 
     @Test
@@ -406,5 +416,82 @@ class DrawingServiceTest {
         assertEquals(listOf(1001, 1006), captureRequestedRounds(2))
         val batches = captureSavedBatches(1)
         assertEquals((1001..1005).toList(), batches[0].map { it.round })
+        verifySchedulerEventPublishedOnce()
+    }
+
+    // ---------------------------------------------------------------------
+    // DrawingsChangedEvent 발행 — 캐시 워밍업(DrawingCacheWarmer) 트리거
+    // ---------------------------------------------------------------------
+
+    private fun verifySchedulerEventPublishedOnce() {
+        verify(eventPublisher, times(1)).publishEvent(DrawingsChangedEvent(DrawingsChangedEvent.Source.SCHEDULER))
+        verifyNoMoreInteractions(eventPublisher)
+    }
+
+    private fun verifyExcelUploadEventPublishedOnce() {
+        verify(eventPublisher, times(1)).publishEvent(DrawingsChangedEvent(DrawingsChangedEvent.Source.EXCEL_UPLOAD))
+        verifyNoMoreInteractions(eventPublisher)
+    }
+
+    @Test
+    fun 엑셀_업로드_성공하면_EXCEL_UPLOAD_이벤트를_1회_발행한다() {
+        val file = MockMultipartFile(
+            "file", "excel.xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ClassLoader.getSystemResource("excel.xlsx").readBytes()
+        )
+
+        assertDoesNotThrow { drawingService.readExcelFile(file) }
+
+        val saved = captureSavedBatches(1)[0]
+        Assertions.assertThat(saved).isNotEmpty
+        verifyExcelUploadEventPublishedOnce()
+    }
+
+    @Test
+    fun 엑셀_업로드_확장자가_xlsx가_아니어서_실패해도_EXCEL_UPLOAD_이벤트를_1회_발행한다() {
+        val file = MockMultipartFile(
+            "file", "invalid.txt", "text/plain",
+            ClassLoader.getSystemResource("invalid.txt").readBytes()
+        )
+
+        assertThrows<IllegalArgumentException> { drawingService.readExcelFile(file) }
+
+        verify(drawingRepository, never()).saveAll(anyIterable<Drawing>())
+        verifyExcelUploadEventPublishedOnce()
+    }
+
+    @Test
+    fun 엑셀_업로드_파일_파싱에_실패해도_EXCEL_UPLOAD_이벤트를_1회_발행한다() {
+        val file = MockMultipartFile("file", "broken.xlsx", "application/octet-stream", "엑셀 아님".toByteArray())
+
+        assertThrows<RuntimeException> { drawingService.readExcelFile(file) }
+
+        verify(drawingRepository, never()).saveAll(anyIterable<Drawing>())
+        verifyExcelUploadEventPublishedOnce()
+    }
+
+    @Test
+    fun 스케줄러_새_회차가_없어도_SCHEDULER_이벤트를_1회_발행한다() {
+        givenLatestStoredRound(1244)
+        stubApi { fixture("lotto-api-response-1243.json") } // 최신 1244까지만 포함 -> 새 회차 없음
+
+        assertDoesNotThrow { drawingService.fetchAndStoreLottoNumbers() }
+
+        verify(drawingRepository, never()).saveAll(anyIterable<Drawing>())
+        verifySchedulerEventPublishedOnce()
+    }
+
+    @Test
+    fun 스케줄러_DB_조회_전에_SCHEDULER_이벤트를_먼저_발행한다() {
+        givenLatestStoredRound(1244)
+        stubApi { fixture("lotto-api-response-empty.json") }
+
+        drawingService.fetchAndStoreLottoNumbers()
+
+        val inOrder = inOrder(eventPublisher, drawingRepository, restTemplate)
+        inOrder.verify(eventPublisher).publishEvent(DrawingsChangedEvent(DrawingsChangedEvent.Source.SCHEDULER))
+        inOrder.verify(drawingRepository).findTopByOrderByRoundDesc()
+        inOrder.verify(restTemplate).getForObject(anyString(), eq(String::class.java))
     }
 }

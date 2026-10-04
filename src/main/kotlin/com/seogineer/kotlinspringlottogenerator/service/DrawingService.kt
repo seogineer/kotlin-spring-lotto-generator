@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.seogineer.kotlinspringlottogenerator.dto.FrequencyResponse
 import com.seogineer.kotlinspringlottogenerator.dto.LottoDrawingApiResponse
-import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
 import com.seogineer.kotlinspringlottogenerator.entity.Drawing
 import com.seogineer.kotlinspringlottogenerator.entity.DrawingRepository
 import org.apache.poi.ss.usermodel.Row
@@ -12,11 +11,13 @@ import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.WorkbookFactory
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.multipart.MultipartFile
@@ -30,16 +31,14 @@ import java.time.format.DateTimeFormatter
 class DrawingService(
     private val drawingRepository: DrawingRepository,
     private val restTemplate: RestTemplate,
+    private val eventPublisher: ApplicationEventPublisher,
 ) {
 
-    @Cacheable(value = ["drawings"], key = "#page")
+    // 범위를 벗어난 요청(size > 20 또는 page > 300)은 캐시하지 않고 조회만 한다 (캐시 키 무제한 증가 방지)
+    @Cacheable(value = ["drawings"], key = "#page + ':' + #size", condition = "#size <= 20 && #page <= 300")
     fun getDrawings(page: Int, size: Int): Page<Drawing> {
         val pageable: Pageable = PageRequest.of(page, size)
         return drawingRepository.getDrawings(pageable)
-    }
-
-    fun generateLottoNumbers(): LottoNumberResponse {
-        return drawingRepository.generateLottoNumbers()
     }
 
     @Cacheable(value = ["mostFrequentNumbers"])
@@ -52,9 +51,23 @@ class DrawingService(
         return drawingRepository.getTopNumbersPerPosition()
     }
 
-    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition"], allEntries = true)
+    /** 자리별로 관측된 모든 번호의 빈도 (가중 무작위 추천용). */
+    @Cacheable(value = ["frequenciesPerPosition"])
+    fun getFrequenciesPerPosition(): List<FrequencyResponse> {
+        return drawingRepository.getFrequenciesPerPosition()
+    }
+
+    /** 캐시 워밍업 직전 전체 무효화용. DrawingCacheWarmer가 프록시를 통해 호출한다. 캐시만 비우므로 DB 트랜잭션을 열지 않는다. */
+    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition", "frequenciesPerPosition"], allEntries = true)
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    fun evictAllCaches() {
+    }
+
+    // beforeInvocation = true: 캐시/트랜잭션 프록시 중첩 순서와 무관하게 evict가 워밍업(트랜잭션 완료 후)보다 먼저 일어나도록 한다
+    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition", "frequenciesPerPosition"], allEntries = true, beforeInvocation = true)
     @Transactional
     fun readExcelFile(file: MultipartFile) {
+        eventPublisher.publishEvent(DrawingsChangedEvent(DrawingsChangedEvent.Source.EXCEL_UPLOAD))
         val fileName = file.originalFilename ?: ""
         if (!fileName.endsWith(".xlsx")) {
             throw IllegalArgumentException("지원하지 않는 파일 형식입니다. 엑셀 파일(.xlsx)만 업로드할 수 있습니다.")
@@ -105,10 +118,11 @@ class DrawingService(
         return drawingRepository.findTopByOrderByRoundDesc().map { it.round }.orElse(0)
     }
 
-    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition"], allEntries = true)
+    @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition", "frequenciesPerPosition"], allEntries = true, beforeInvocation = true)
     @Scheduled(cron = "0 0 12 ? * MON", zone = "Asia/Seoul")
     @Transactional
     fun fetchAndStoreLottoNumbers() {
+        eventPublisher.publishEvent(DrawingsChangedEvent(DrawingsChangedEvent.Source.SCHEDULER))
         var lastRound = findLatestStoredRound()
         val objectMapper = ObjectMapper().registerKotlinModule()
         val dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
