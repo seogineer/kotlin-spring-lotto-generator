@@ -3,7 +3,7 @@ package com.seogineer.kotlinspringlottogenerator.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.seogineer.kotlinspringlottogenerator.dto.FrequencyResponse
-import com.seogineer.kotlinspringlottogenerator.dto.LatestNumberResponse
+import com.seogineer.kotlinspringlottogenerator.dto.LottoDrawingApiResponse
 import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
 import com.seogineer.kotlinspringlottogenerator.entity.Drawing
 import com.seogineer.kotlinspringlottogenerator.entity.DrawingRepository
@@ -28,7 +28,8 @@ import java.time.format.DateTimeFormatter
 @Service
 @Transactional(readOnly = true)
 class DrawingService(
-    private val drawingRepository: DrawingRepository
+    private val drawingRepository: DrawingRepository,
+    private val restTemplate: RestTemplate,
 ) {
 
     @Cacheable(value = ["drawings"], key = "#page")
@@ -99,41 +100,56 @@ class DrawingService(
         return prize.toBigInteger()
     }
 
-    fun findLatestRound(): Int {
-        return drawingRepository.findTopByOrderByRoundDesc().get().round + 1
+    /** DB에 저장된 최신 회차. DB가 비어 있으면 0. */
+    fun findLatestStoredRound(): Int {
+        return drawingRepository.findTopByOrderByRoundDesc().map { it.round }.orElse(0)
     }
 
     @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition"], allEntries = true)
     @Scheduled(cron = "0 0 12 ? * MON", zone = "Asia/Seoul")
     @Transactional
     fun fetchAndStoreLottoNumbers() {
-        val latestDrawNo = findLatestRound()
-        val apiUrl = "https://www.dhlottery.co.kr/common.do?method=getLottoNumber&drwNo=${latestDrawNo}"
-        val restTemplate = RestTemplate()
+        var lastRound = findLatestStoredRound()
+        val objectMapper = ObjectMapper().registerKotlinModule()
+        val dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
         try {
-            val response = restTemplate.getForObject(apiUrl, String::class.java)
-            val latestNumberResponse = ObjectMapper()
-                                        .registerKotlinModule()
-                                        .readValue(response, LatestNumberResponse::class.java)
-            if (latestNumberResponse.returnValue == "success") {
-                val drawing = Drawing(
-                    round = latestNumberResponse.drwNo,
-                    date = LocalDate.parse(
-                        latestNumberResponse.drwNoDate, DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-                    one = latestNumberResponse.drwtNo1,
-                    two = latestNumberResponse.drwtNo2,
-                    three = latestNumberResponse.drwtNo3,
-                    four = latestNumberResponse.drwtNo4,
-                    five = latestNumberResponse.drwtNo5,
-                    six = latestNumberResponse.drwtNo6,
-                    bonus = latestNumberResponse.bnusNo,
-                    firstWinPrize = latestNumberResponse.firstWinamnt,
-                    firstWinners = latestNumberResponse.firstPrzwnerCo
-                )
-                drawingRepository.save(drawing)
+            // 응답은 srchLtEpsd 주변 약 10개 회차(최신 회차에서 잘림). 새 회차가 없을 때까지 반복 호출해 누락분을 따라잡는다.
+            for (attempt in 1..MAX_FETCH_ITERATIONS) {
+                val apiUrl = "$LOTTO_API_URL?srchDir=center&srchLtEpsd=${lastRound + 1}"
+                val response = restTemplate.getForObject(apiUrl, String::class.java)
+                val apiResponse = objectMapper.readValue(response, LottoDrawingApiResponse::class.java)
+                val baseRound = lastRound
+                val newDrawings = apiResponse.data?.list.orEmpty()
+                    .filter { it.ltEpsd > baseRound }
+                    .sortedBy { it.ltEpsd }
+                    .map {
+                        Drawing(
+                            round = it.ltEpsd,
+                            date = LocalDate.parse(it.ltRflYmd, dateFormatter),
+                            one = it.tm1WnNo,
+                            two = it.tm2WnNo,
+                            three = it.tm3WnNo,
+                            four = it.tm4WnNo,
+                            five = it.tm5WnNo,
+                            six = it.tm6WnNo,
+                            bonus = it.bnsWnNo,
+                            firstWinPrize = it.rnk1WnAmt,
+                            firstWinners = it.rnk1WnNope
+                        )
+                    }
+                if (newDrawings.isEmpty()) {
+                    break
+                }
+                drawingRepository.saveAll(newDrawings)
+                lastRound = newDrawings.last().round
             }
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    companion object {
+        private const val LOTTO_API_URL = "https://www.dhlottery.co.kr/lt645/selectPstLt645InfoNew.do"
+        private const val MAX_FETCH_ITERATIONS = 50
     }
 }
