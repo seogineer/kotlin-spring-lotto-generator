@@ -30,7 +30,7 @@
 - QueryDSL을 이용한 통계 쿼리
 - 협업 환경을 가정해서 RestDocs를 이용해 API 문서 작성
 - 클라우드 환경에서 Docker를 이용해 인프라를 구축
-- 젠킨스를 이용한 배포 자동화
+- GitHub Actions를 이용한 빌드 자동화와 스크립트 기반 배포 (이전에는 Jenkins 사용)
 
 ## 기술 스택
 - 언어: Kotlin
@@ -285,13 +285,14 @@ ENTRYPOINT ["java", "-jar", "/app/kotlin-spring-lotto-generator.jar"]
 EXPOSE 8081
 ```
 
-### jenkins execute shell
+### (이전 방식) jenkins execute shell
+RAM 1GB 서버에서 Gradle 빌드와 테스트를 돌리면 서비스가 크게 느려져 Jenkins 빌드는 중단했습니다. 아래 설정과 `deploy.sh`는 참고용입니다.
 ```shell
 ./gradlew clean build
 ssh ubuntu@host-ip-address '/home/ubuntu/deploy.sh'
 ```
 
-### deploy.sh
+### (이전 방식) deploy.sh
 ```shell
 #!/bin/bash
 
@@ -318,6 +319,11 @@ docker compose up -d spring-server
 #!/bin/bash
 sudo docker exec nginx nginx -s reload
 ```
+
+### 빌드와 배포 (현재)
+1. `main`에 push하면 GitHub Actions(`.github/workflows/ci.yml`)가 `./gradlew build`(테스트, REST Docs, bootJar)를 실행하고 jar를 아티팩트로 보관합니다.
+2. 서버 반영은 `scripts/deploy-from-actions.sh`로 합니다. 최근 성공한 실행의 jar를 받아 서버에 올리고 `spring-server`만 교체합니다. 받은 jar의 커밋이 로컬 `HEAD`와 다르면 중단하고, 이미지 빌드나 기동에 실패하면 이전 이미지로 복구합니다. 롤백용으로 이전 이미지에 `prev-<시각>` 태그를 남깁니다.
+3. 서버 `Dockerfile`의 베이스 이미지는 `eclipse-temurin:17-jre-jammy`입니다 (`openjdk` 이미지는 Docker Hub에서 제공이 중단됨).
 
 ### 서버 메모리 설정 (RAM 1GB)
 한 서버에서 Jenkins, MySQL, Redis, 앱, nginx를 함께 돌리므로 메모리가 빠듯합니다.
