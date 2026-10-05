@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # 테스트 + REST Docs 생성 + bootJar
+      - name: Build
+        run: ./gradlew build
+
+      - name: Upload jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: kotlin-spring-lotto-generator-jar
+          path: build/libs/kotlin-spring-lotto-generator.jar
+          retention-days: 14
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report
+          path: build/reports/tests/test
+          retention-days: 7
