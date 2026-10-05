@@ -176,6 +176,8 @@ services:
   spring-server:
     image: kotlin-spring-lotto-generator:latest
     container_name: spring-server
+    environment:
+      SPRING_DATASOURCE_PASSWORD: ${APP_DB_PASSWORD}  # 서버의 .env(권한 600)에서 읽음
     restart: unless-stopped
     logging:
       driver: json-file
@@ -323,7 +325,8 @@ sudo docker exec nginx nginx -s reload
 ### 빌드와 배포 (현재)
 1. `main`에 push하면 GitHub Actions(`.github/workflows/ci.yml`)가 `./gradlew build`(테스트, REST Docs, bootJar)를 실행하고 jar를 아티팩트로 보관합니다.
 2. 서버 반영은 `scripts/deploy-from-actions.sh`로 합니다. 최근 성공한 실행의 jar를 받아 서버에 올리고 `spring-server`만 교체합니다. 받은 jar의 커밋이 로컬 `HEAD`와 다르면 중단하고, 이미지 빌드나 기동에 실패하면 이전 이미지로 복구합니다. 롤백용으로 이전 이미지에 `prev-<시각>` 태그를 남깁니다.
-3. 서버 `Dockerfile`의 베이스 이미지는 `eclipse-temurin:17-jre-jammy`입니다 (`openjdk` 이미지는 Docker Hub에서 제공이 중단됨).
+3. 운영 DB 비밀번호는 저장소에 없습니다. 서버의 `.env`(권한 600)에 `APP_DB_PASSWORD=...`를 두면 compose가 `SPRING_DATASOURCE_PASSWORD`로 앱에 전달하고, 없으면 앱이 시작 단계에서 실패합니다. 로컬에서 `prod` 프로필로 실행할 때도 같은 환경변수가 필요합니다.
+4. 서버 `Dockerfile`의 베이스 이미지는 `eclipse-temurin:17-jre-jammy`입니다 (`openjdk` 이미지는 Docker Hub에서 제공이 중단됨).
 
 ### 서버 메모리 설정 (RAM 1GB)
 한 서버에서 Jenkins, MySQL, Redis, 앱, nginx를 함께 돌리므로 메모리가 빠듯합니다.
