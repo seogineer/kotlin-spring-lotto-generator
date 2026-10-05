@@ -19,6 +19,11 @@ import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.support.SimpleTransactionStatus
 import org.slf4j.LoggerFactory
+import com.seogineer.kotlinspringlottogenerator.config.LoggingCacheErrorHandler
+import org.springframework.beans.factory.ObjectProvider
+import org.springframework.beans.factory.support.StaticListableBeanFactory
+import org.springframework.cache.concurrent.ConcurrentMapCache
+import org.assertj.core.api.Assertions.assertThat
 
 /**
  * DrawingCacheWarmer 단위 테스트 (Mockito).
@@ -200,5 +205,114 @@ class DrawingCacheWarmerTest {
 
         assertEquals(listOf("캐시 워밍업 완료 (trigger=ok)"), events.filter { it.level == Level.INFO }.map { it.formattedMessage })
         assertEquals(0, events.count { it.level == Level.WARN })
+    }
+
+    // ---------- T7: 워밍업 중 캐시 서버 오류 요약 (M2) ----------
+
+    private val handler = LoggingCacheErrorHandler()
+
+    private fun providerOf(vararg handlers: LoggingCacheErrorHandler): ObjectProvider<LoggingCacheErrorHandler> {
+        val beanFactory = StaticListableBeanFactory()
+        handlers.forEachIndexed { index, h -> beanFactory.addBean("loggingCacheErrorHandler$index", h) }
+        return beanFactory.getBeanProvider(LoggingCacheErrorHandler::class.java)
+    }
+
+    private fun warmerWith(provider: ObjectProvider<LoggingCacheErrorHandler>?) =
+        DrawingCacheWarmer(drawingService, transactionManager, provider)
+
+    /** 실제 처리기를 거친 것처럼 evict 중 clear 오류 [count]건을 처리기에 기록한다 (처리기가 삼키므로 예외는 없음). */
+    private fun givenEvictCacheErrors(count: Int) {
+        doAnswer {
+            repeat(count) { handler.handleCacheClearError(IllegalStateException("Redis 연결 실패"), ConcurrentMapCache("drawings")) }
+            null
+        }.`when`(drawingService).evictAllCaches()
+    }
+
+    @Test
+    fun 워밍업_중_캐시_서버_오류가_있으면_완료_대신_오류_건수를_ERROR로_남긴다() {
+        givenTransactionStarts()
+        givenEvictCacheErrors(2)
+
+        val events = captureWarmerLogs { warmerWith(providerOf(handler)).warmUp("t") }
+
+        val error = events.single { it.level == Level.ERROR }
+        assertThat(error.formattedMessage).contains("캐시 서버 오류 2건", "trigger=t")
+        assertEquals(0, events.count { it.level == Level.INFO }, "완료 로그가 남으면 안 됨")
+        assertEquals(0, events.count { it.level == Level.WARN })
+        // 캐시 오류가 있어도 DB 조회(워밍업 본체)는 끝까지 진행한다
+        verifyWarmUpInOrder()
+    }
+
+    @Test
+    fun 조회_단계의_캐시_오류도_건수에_포함된다() {
+        givenTransactionStarts()
+        `when`(drawingService.getMostFrequentNumbers()).thenAnswer {
+            handler.handleCacheGetError(IllegalStateException("timeout"), ConcurrentMapCache("mostFrequentNumbers"), "SimpleKey []")
+            handler.handleCachePutError(IllegalStateException("timeout"), ConcurrentMapCache("mostFrequentNumbers"), "SimpleKey []", null)
+            emptyList<Any>()
+        }
+
+        val events = captureWarmerLogs { warmerWith(providerOf(handler)).warmUp("t") }
+
+        assertThat(events.single { it.level == Level.ERROR }.formattedMessage).contains("캐시 서버 오류 2건")
+    }
+
+    @Test
+    fun 처리기가_있어도_워밍업_중_오류가_없으면_INFO_완료만_남긴다() {
+        givenTransactionStarts()
+
+        val events = captureWarmerLogs { warmerWith(providerOf(handler)).warmUp("t2") }
+
+        assertEquals(listOf("캐시 워밍업 완료 (trigger=t2)"), events.filter { it.level == Level.INFO }.map { it.formattedMessage })
+        assertEquals(0, events.count { it.level == Level.ERROR || it.level == Level.WARN })
+    }
+
+    @Test
+    fun 이전에_누적된_오류는_세지_않고_워밍업_전후_차이만_본다() {
+        givenTransactionStarts()
+        // 워밍업 전에 다른 요청에서 생긴 오류 3건
+        repeat(3) { handler.handleCacheGetError(IllegalStateException("old"), ConcurrentMapCache("drawings"), "k") }
+
+        val events = captureWarmerLogs { warmerWith(providerOf(handler)).warmUp("t3") }
+
+        assertEquals(listOf("캐시 워밍업 완료 (trigger=t3)"), events.filter { it.level == Level.INFO }.map { it.formattedMessage })
+        assertEquals(0, events.count { it.level == Level.ERROR })
+        assertEquals(3L, handler.failureCount())
+    }
+
+    @Test
+    fun 처리기_빈이_없으면_항상_INFO_완료를_남긴다() {
+        givenTransactionStarts()
+
+        val events = captureWarmerLogs { warmerWith(providerOf()).warmUp("dev") }
+
+        assertEquals(listOf("캐시 워밍업 완료 (trigger=dev)"), events.filter { it.level == Level.INFO }.map { it.formattedMessage })
+        assertEquals(0, events.count { it.level == Level.ERROR })
+        verifyWarmUpInOrder()
+    }
+
+    @Test
+    fun provider가_null이면_항상_INFO_완료를_남긴다() {
+        givenTransactionStarts()
+
+        val events = captureWarmerLogs { warmerWith(null).warmUp("null") }
+
+        assertEquals(listOf("캐시 워밍업 완료 (trigger=null)"), events.filter { it.level == Level.INFO }.map { it.formattedMessage })
+        assertEquals(0, events.count { it.level == Level.ERROR })
+    }
+
+    @Test
+    fun 처리기가_있어도_조회_예외가_나면_기존처럼_WARN_워밍업_실패를_남긴다() {
+        givenTransactionStarts()
+        givenEvictCacheErrors(1)
+        `when`(drawingService.getMostFrequentNumbers()).thenThrow(IllegalStateException("DB 오류"))
+
+        val events = captureWarmerLogs { warmerWith(providerOf(handler)).warmUp("fail") }
+
+        val warn = events.single { it.level == Level.WARN }
+        assertThat(warn.formattedMessage).contains("워밍업 실패", "trigger=fail")
+        assertEquals("DB 오류", warn.throwableProxy!!.message)
+        assertEquals(0, events.count { it.level == Level.ERROR || it.level == Level.INFO })
+        verify(transactionManager).rollback(status)
     }
 }

@@ -357,4 +357,27 @@ class LottoNumberGeneratorServiceWeightedTest {
     fun 유한한_지수는_생성할_수_있다(exponent: Double) {
         assertDoesNotThrow { LottoNumberGeneratorService(drawingService, Random(1), exponent) }
     }
+
+    // ----- 08 E: 음수 지수 -----
+
+    @Test
+    fun 음수_지수에서도_결과는_유효하고_드문_번호가_더_자주_추천된다() {
+        // 자리 k의 후보: 2k-1(빈도 9), 2k(빈도 1). 후보 구간이 겹치지 않아 항상 오름차순이다.
+        val candidates = (1..6).associateWith { k -> mapOf(2 * k - 1 to 9L, 2 * k to 1L) }
+        `when`(drawingService.getFrequenciesPerPosition()).thenReturn(frequenciesOf(candidates))
+
+        fun rareShareAtPosition1(exponent: Double): Int {
+            val service = service(Random(20261005L), exponent)
+            return (1..1_000).count {
+                val numbers = service.generateLottoNumbers().toList()
+                assertStrictlyAscendingInRange(numbers)
+                numbers[0] == 2
+            }
+        }
+
+        // 지수 -1: 가중치 1/9 vs 1 -> 드문 번호(2) 기대 비율 0.9 / 지수 1: 0.1
+        assertThat(rareShareAtPosition1(-1.0)).isGreaterThan(800)
+        assertThat(rareShareAtPosition1(1.0)).isLessThan(200)
+        verify(drawingService, never()).getTopNumbersPerPosition()
+    }
 }

@@ -55,7 +55,7 @@ if [ "$ok" != "1" ]; then
   exit 1
 fi
 echo "== startup log =="
-docker logs spring-server 2>&1 | grep -E "Started |캐시 워밍업|ERROR|Exception" | cut -c1-220 | tail -10
+docker logs spring-server 2>&1 | grep -E "Started |가중치 지수|캐시 워밍업|캐시 .* 실패|ERROR|Exception" | cut -c1-220 | tail -12
 docker ps --format '{{.Names}} {{.Status}}' | grep spring-server
 free -m | sed -n 2,3p
 REMOTE

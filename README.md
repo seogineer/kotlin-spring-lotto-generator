@@ -24,6 +24,7 @@
 ## 캐시와 조회 속도
 - prod 프로필에서만 Redis 캐시(TTL 7일)를 사용합니다. `drawings`(키 `page:size`, `size <= 20 && page <= 300`일 때만 캐시), `mostFrequentNumbers`, `topNumbersPerPosition`, `frequenciesPerPosition` 4개를 항상 함께 무효화합니다.
 - 앱 시작 직후와 갱신(엑셀 업로드, 스케줄러) 직후에 `DrawingCacheWarmer`가 첫 화면 조회를 미리 실행해 캐시를 채웁니다.
+- Redis가 느려지거나 멈춰도 요청은 실패하지 않고 DB에서 조회합니다. 캐시 명령/연결 타임아웃은 1초이고, 캐시 오류는 로그로 남습니다(삭제 실패는 ERROR).
 
 ## 학습 목표
 - 코틀린을 이용한 스프링 부트 서버

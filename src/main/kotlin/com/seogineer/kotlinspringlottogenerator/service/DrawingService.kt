@@ -9,6 +9,7 @@ import com.seogineer.kotlinspringlottogenerator.entity.DrawingRepository
 import org.apache.poi.ss.usermodel.Row
 import org.apache.poi.ss.usermodel.Sheet
 import org.apache.poi.ss.usermodel.WorkbookFactory
+import org.slf4j.LoggerFactory
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.context.ApplicationEventPublisher
@@ -19,6 +20,7 @@ import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.client.RestClientResponseException
 import org.springframework.web.client.RestTemplate
 import org.springframework.web.multipart.MultipartFile
 import java.math.BigInteger
@@ -98,7 +100,7 @@ class DrawingService(
                 drawingRepository.saveAll(drawings)
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            log.error("엑셀 파일 처리 실패 (file={})", sanitizeForLog(fileName, MAX_LOG_FILENAME_LENGTH), e)
             throw RuntimeException("엑셀 파일 처리 중 오류 발생")
         }
     }
@@ -118,20 +120,38 @@ class DrawingService(
         return drawingRepository.findTopByOrderByRoundDesc().map { it.round }.orElse(0)
     }
 
+    /**
+     * 누락된 최신 회차를 수집해 저장한다.
+     *
+     * - HTTP 수집은 트랜잭션 밖(NOT_SUPPORTED)에서 수행한다. 최대 50회 호출 동안 DB 커넥션을 잡지 않는다.
+     * - 저장은 묶음마다 `drawingRepository.saveAll`(SimpleJpaRepository의 @Transactional, 별도 빈 프록시)로
+     *   짧은 트랜잭션에서 커밋된다. 중간에 실패하면 앞 묶음만 남고 오름차순으로 이어진 앞부분만 저장된다.
+     * - 캐시: beforeInvocation evict -> 묶음별 저장 커밋 -> finally에서 DrawingsChangedEvent 발행.
+     *   실제 트랜잭션이 없으므로 리스너(fallbackExecution = true)가 즉시 재evict와 워밍업을 수행한다.
+     * - 예외는 밖으로 던지지 않는다.
+     */
     @CacheEvict(value = ["drawings", "mostFrequentNumbers", "topNumbersPerPosition", "frequenciesPerPosition"], allEntries = true, beforeInvocation = true)
     @Scheduled(cron = "0 0 12 ? * MON", zone = "Asia/Seoul")
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     fun fetchAndStoreLottoNumbers() {
-        eventPublisher.publishEvent(DrawingsChangedEvent(DrawingsChangedEvent.Source.SCHEDULER))
-        var lastRound = findLatestStoredRound()
         val objectMapper = ObjectMapper().registerKotlinModule()
         val dateFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
+        var requestedRound: Int? = null
+        var responseBody: String? = null
+        var calls = 0
+        var firstSavedRound: Int? = null
+        var lastSavedRound: Int? = null
+        var reachedLimit = false
         try {
+            var lastRound = findLatestStoredRound()
             // 응답은 srchLtEpsd 주변 약 10개 회차(최신 회차에서 잘림). 새 회차가 없을 때까지 반복 호출해 누락분을 따라잡는다.
             for (attempt in 1..MAX_FETCH_ITERATIONS) {
-                val apiUrl = "$LOTTO_API_URL?srchDir=center&srchLtEpsd=${lastRound + 1}"
-                val response = restTemplate.getForObject(apiUrl, String::class.java)
-                val apiResponse = objectMapper.readValue(response, LottoDrawingApiResponse::class.java)
+                requestedRound = lastRound + 1
+                responseBody = null
+                val apiUrl = "$LOTTO_API_URL?srchDir=center&srchLtEpsd=$requestedRound"
+                calls++
+                responseBody = restTemplate.getForObject(apiUrl, String::class.java)
+                val apiResponse = objectMapper.readValue(responseBody, LottoDrawingApiResponse::class.java)
                 val baseRound = lastRound
                 val newDrawings = apiResponse.data?.list.orEmpty()
                     .filter { it.ltEpsd > baseRound }
@@ -154,16 +174,49 @@ class DrawingService(
                 if (newDrawings.isEmpty()) {
                     break
                 }
-                drawingRepository.saveAll(newDrawings)
+                drawingRepository.saveAll(newDrawings) // 묶음 단위 트랜잭션 (커밋까지 여기서 끝남)
+                if (firstSavedRound == null) firstSavedRound = newDrawings.first().round
+                lastSavedRound = newDrawings.last().round
                 lastRound = newDrawings.last().round
+                if (attempt == MAX_FETCH_ITERATIONS) {
+                    reachedLimit = true
+                }
             }
+            if (reachedLimit) {
+                log.warn("당첨 번호 수집 반복 상한({}회)에 도달했습니다. 남은 회차는 다음 실행에서 이어서 수집합니다 (마지막 저장 회차={})",
+                    MAX_FETCH_ITERATIONS, lastSavedRound)
+            }
+            logSavedRange(firstSavedRound, lastSavedRound, calls)
         } catch (e: Exception) {
-            e.printStackTrace()
+            val body = e.responseBodyOrNull() ?: responseBody
+            log.error("당첨 번호 수집 실패 (srchLtEpsd={}, 호출 횟수={}, 응답 앞부분={})",
+                requestedRound, calls, body?.let { sanitizeForLog(it, MAX_LOG_BODY_LENGTH) }, e)
+            logSavedRange(firstSavedRound, lastSavedRound, calls)
+        } finally {
+            eventPublisher.publishEvent(DrawingsChangedEvent(DrawingsChangedEvent.Source.SCHEDULER))
         }
     }
+
+    private fun logSavedRange(firstSavedRound: Int?, lastSavedRound: Int?, calls: Int) {
+        if (firstSavedRound != null) {
+            log.info("당첨 번호 저장 완료 (회차 {}~{}, API 호출 {}회)", firstSavedRound, lastSavedRound, calls)
+        } else {
+            log.info("새로 저장한 회차 없음 (API 호출 {}회)", calls)
+        }
+    }
+
+    private fun Exception.responseBodyOrNull(): String? =
+        (this as? RestClientResponseException)?.responseBodyAsString?.takeIf { it.isNotEmpty() }
+
+    /** 외부 입력을 로그에 남길 때 줄바꿈을 제거하고 길이를 제한한다 (로그 위조 방지). */
+    private fun sanitizeForLog(value: String, maxLength: Int): String =
+        value.take(maxLength).replace(Regex("[\\r\\n\\t]"), " ")
 
     companion object {
         private const val LOTTO_API_URL = "https://www.dhlottery.co.kr/lt645/selectPstLt645InfoNew.do"
         private const val MAX_FETCH_ITERATIONS = 50
+        private const val MAX_LOG_BODY_LENGTH = 300
+        private const val MAX_LOG_FILENAME_LENGTH = 200
+        private val log = LoggerFactory.getLogger(DrawingService::class.java)
     }
 }

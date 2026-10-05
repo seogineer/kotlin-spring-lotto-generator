@@ -483,15 +483,16 @@ class DrawingServiceTest {
     }
 
     @Test
-    fun 스케줄러_DB_조회_전에_SCHEDULER_이벤트를_먼저_발행한다() {
+    // 08: 스케줄러는 트랜잭션 밖(NOT_SUPPORTED)에서 수집하고 묶음별로 커밋하므로, 이벤트는 모든 저장이 끝난 뒤 finally에서 발행한다
+    fun 스케줄러_수집과_저장이_끝난_뒤에_SCHEDULER_이벤트를_발행한다() {
         givenLatestStoredRound(1244)
         stubApi { fixture("lotto-api-response-empty.json") }
 
         drawingService.fetchAndStoreLottoNumbers()
 
         val inOrder = inOrder(eventPublisher, drawingRepository, restTemplate)
-        inOrder.verify(eventPublisher).publishEvent(DrawingsChangedEvent(DrawingsChangedEvent.Source.SCHEDULER))
         inOrder.verify(drawingRepository).findTopByOrderByRoundDesc()
         inOrder.verify(restTemplate).getForObject(anyString(), eq(String::class.java))
+        inOrder.verify(eventPublisher).publishEvent(DrawingsChangedEvent(DrawingsChangedEvent.Source.SCHEDULER))
     }
 }

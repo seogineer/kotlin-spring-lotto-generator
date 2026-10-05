@@ -2,6 +2,7 @@ package com.seogineer.kotlinspringlottogenerator.service
 
 import com.seogineer.kotlinspringlottogenerator.dto.FrequencyResponse
 import com.seogineer.kotlinspringlottogenerator.dto.LottoNumberResponse
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.Random
@@ -26,6 +27,11 @@ class LottoNumberGeneratorService(
 
     init {
         require(weightExponent.isFinite()) { "lotto.recommend.weight-exponent는 유한한 실수여야 합니다: $weightExponent" }
+        if (weightExponent < 0) {
+            // 결과 유효성(1~45, 엄격한 오름차순)은 그대로라 기동은 막지 않는다. 드문 번호를 더 추천하게 된다.
+            log.warn("lotto.recommend.weight-exponent가 음수입니다 ({}). 출현 빈도가 낮은 번호일수록 더 자주 추천됩니다", weightExponent)
+        }
+        log.info("추천 번호 가중치 지수 적용: lotto.recommend.weight-exponent={}", weightExponent)
     }
 
     fun generateLottoNumbers(): LottoNumberResponse {
@@ -138,6 +144,7 @@ class LottoNumberGeneratorService(
         private const val POSITIONS = 6
         private const val TOP_N = 5
         const val MAX_ATTEMPTS = 1_000
+        private val log = LoggerFactory.getLogger(LottoNumberGeneratorService::class.java)
         private const val MIN_NUMBER = 1
         private const val MAX_NUMBER = 45
     }
